@@ -1,5 +1,5 @@
 {
-    "version": "23.01",
+    "version": "25.00",
     "description": "A multi-format file archiver with high compression ratios (Custom configuration)",
     "homepage": "https://www.7-zip.org/",
     "license": "LGPL-2.1-or-later",
@@ -9,13 +9,13 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://www.7-zip.org/a/7z2301-x64.msi",
-            "hash": "0ba639b6dacdf573d847c911bd147c6384381a54dac082b1e8c77bc73d58958b",
+            "url": "https://www.7-zip.org/a/7z2500-x64.msi",
+            "hash": "b48e905ed02c530638e6173f2d743668e63561aac1914d2723fbee5690792272",
             "extract_dir": "Files\\7-Zip"
         },
         "32bit": {
-            "url": "https://www.7-zip.org/a/7z2301.msi",
-            "hash": "b3ca98a8784c710108bbf56f9355ac6060af770b8459a32d94cc09b73cf0af7e",
+            "url": "https://www.7-zip.org/a/7z2500.msi",
+            "hash": "61fe4d6be2a2e445a5b809f0bb27a741dd185511880596f0bdc05fc4903ab795",
             "extract_dir": "Files\\7-Zip"
         }
     },
