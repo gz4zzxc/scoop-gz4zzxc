@@ -6,6 +6,10 @@ on:
     - cron: '30 2 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   excavate:
     runs-on: windows-latest
