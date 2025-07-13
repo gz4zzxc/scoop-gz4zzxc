@@ -13,25 +13,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Set up Scoop
+      - name: Install Scoop
         run: |
-          iwr -useb get.scoop.sh -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          Join-Path (Resolve-Path ~).Path "scoop\shims" >> $env:GITHUB_PATH
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
         shell: pwsh
         
       - name: Update manifests
-        run: |
-          Get-ChildItem bucket/*.json | ForEach-Object {
-            $manifest = $_.BaseName
-            Write-Host "Checking $manifest..."
-            scoop checkver $manifest -u
-          }
-        shell: pwsh
+        uses: ScoopInstaller/GithubActions@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_UPDATED: 1
         
       - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add bucket/*.json
-          git diff --cached --exit-code || (git commit -m "Update manifests" && git push)
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: GitHub Actions
+          author_email: actions@github.com
+          message: 'Update manifests'
+          add: 'bucket/*.json'
