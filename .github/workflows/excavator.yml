@@ -1,0 +1,37 @@
+name: Excavator
+
+on:
+  schedule:
+    # Run at 2:30 AM UTC every day
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  excavate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Set up Scoop
+        run: |
+          iwr -useb get.scoop.sh -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          Join-Path (Resolve-Path ~).Path "scoop\shims" >> $env:GITHUB_PATH
+        shell: pwsh
+        
+      - name: Update manifests
+        run: |
+          Get-ChildItem bucket/*.json | ForEach-Object {
+            $manifest = $_.BaseName
+            Write-Host "Checking $manifest..."
+            scoop checkver $manifest -u
+          }
+        shell: pwsh
+        
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add bucket/*.json
+          git diff --cached --exit-code || (git commit -m "Update manifests" && git push)
