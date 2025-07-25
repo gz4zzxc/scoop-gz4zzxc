@@ -1,9 +1,9 @@
-name: Excavator
+name: Auto Update Manifests
 
 on:
   schedule:
-    # Run at 2:30 AM UTC every day
-    - cron: '30 2 * * *'
+    # Run at 8:00 AM Beijing Time (UTC+8) = 00:00 UTC every day
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,28 +11,270 @@ permissions:
   pull-requests: write
 
 jobs:
-  excavate:
-    runs-on: windows-latest
+  update-manifests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Install Scoop
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-          iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
-        shell: pwsh
-        
-      - name: Update manifests
-        uses: ScoopInstaller/GithubActions@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SKIP_UPDATED: 1
-        
-      - name: Commit changes
+          pip install requests beautifulsoup4 lxml
+
+      - name: Validate current manifests
+        run: |
+          python3 scripts/validate-manifests.py
+
+      - name: Check for AliyunDrive updates
+        id: check-updates
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import requests
+          from datetime import datetime
+          import os
+
+          def check_aliyundrive_update():
+              try:
+                  # Read current version from manifest
+                  with open('bucket/aliyundrive.json', 'r', encoding='utf-8') as f:
+                      manifest = json.load(f)
+                  current_version = manifest['version']
+
+                  print(f"Current version: {current_version}")
+
+                  # Method 1: Try to fetch download page directly
+                  try:
+                      response = requests.get('https://www.aliyundrive.com/download',
+                                            timeout=30,
+                                            headers={
+                                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                                            })
+                      response.raise_for_status()
+
+                      # Extract version from download URL
+                      version_match = re.search(r'aDrive-(\d+\.\d+\.\d+)\.exe', response.text)
+                      if version_match:
+                          latest_version = version_match.group(1)
+                          print(f"Found version from download page: {latest_version}")
+                      else:
+                          raise Exception("Version not found in download page")
+
+                  except Exception as e:
+                      print(f"Method 1 failed: {e}")
+                      # Method 2: Try to check if current download URL is still valid
+                      current_url = manifest.get('url', '')
+                      if current_url:
+                          print(f"Checking if current URL is still valid: {current_url}")
+                          head_response = requests.head(current_url, timeout=10)
+                          if head_response.status_code == 200:
+                              print("✅ Current version URL is still valid, assuming no update")
+                              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                                  f.write(f"updated=false\n")
+                              return False
+                          else:
+                              print(f"❌ Current URL returned {head_response.status_code}")
+
+                      # Method 3: Try common version increments
+                      version_parts = current_version.split('.')
+                      if len(version_parts) == 3:
+                          # Try incrementing patch version
+                          patch = int(version_parts[2])
+                          for i in range(1, 10):  # Try next 9 patch versions
+                              test_version = f"{version_parts[0]}.{version_parts[1]}.{patch + i}"
+                              test_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{test_version}.exe"
+                              print(f"Testing version {test_version}...")
+                              test_response = requests.head(test_url, timeout=5)
+                              if test_response.status_code == 200:
+                                  latest_version = test_version
+                                  print(f"Found newer version: {latest_version}")
+                                  break
+                          else:
+                              print("No newer version found through URL testing")
+                              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                                  f.write(f"updated=false\n")
+                              return False
+                      else:
+                          print("Cannot parse current version format")
+                          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                              f.write(f"updated=false\n")
+                          return False
+
+                  download_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{latest_version}.exe"
+                  print(f"Latest version: {latest_version}")
+
+                  if latest_version != current_version:
+                      # Verify the new URL exists
+                      verify_response = requests.head(download_url, timeout=10)
+                      if verify_response.status_code != 200:
+                          print(f"❌ New version URL not accessible: {verify_response.status_code}")
+                          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                              f.write(f"updated=false\n")
+                          return False
+
+                      # Update manifest
+                      manifest['version'] = latest_version
+                      manifest['url'] = download_url
+                      if 'autoupdate' in manifest:
+                          manifest['autoupdate']['url'] = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
+
+                      # Write updated manifest
+                      with open('bucket/aliyundrive.json', 'w', encoding='utf-8') as f:
+                          json.dump(manifest, f, indent=4, ensure_ascii=False)
+
+                      # Set output for GitHub Actions
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write(f"updated=true\n")
+                          f.write(f"old_version={current_version}\n")
+                          f.write(f"new_version={latest_version}\n")
+
+                      print(f"✅ Updated AliyunDrive from {current_version} to {latest_version}")
+                      return True
+                  else:
+                      print("✅ AliyunDrive is up to date")
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write(f"updated=false\n")
+                      return False
+
+              except Exception as e:
+                  print(f"❌ Error checking AliyunDrive updates: {e}")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"updated=false\n")
+                  return False
+
+          check_aliyundrive_update()
+          EOF
+
+      - name: Update README if version changed
+        if: steps.check-updates.outputs.updated == 'true'
+        run: |
+          python3 << 'EOF'
+          import re
+
+          # Read README
+          with open('README.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          # Update version in table
+          old_version = "${{ steps.check-updates.outputs.old_version }}"
+          new_version = "${{ steps.check-updates.outputs.new_version }}"
+
+          # Replace version in the table
+          pattern = r'(\| aliyundrive \| .+ \| )' + re.escape(old_version) + r'( \|)'
+          replacement = r'\g<1>' + new_version + r'\g<2>'
+          content = re.sub(pattern, replacement, content)
+
+          # Write updated README
+          with open('README.md', 'w', encoding='utf-8') as f:
+              f.write(content)
+
+          print(f"✅ Updated README version from {old_version} to {new_version}")
+          EOF
+
+      - name: Commit and push changes
+        if: steps.check-updates.outputs.updated == 'true'
         uses: EndBug/add-and-commit@v9
         with:
-          author_name: GitHub Actions
+          author_name: GitHub Actions Bot
           author_email: actions@github.com
-          message: 'Update manifests'
-          add: 'bucket/*.json'
+          message: |
+            🤖 Auto-update AliyunDrive to v${{ steps.check-updates.outputs.new_version }}
+
+            - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
+            - Auto-detected from https://www.aliyundrive.com/download
+            - Updated at: ${{ github.run_id }}
+          add: |
+            bucket/aliyundrive.json
+            README.md
+
+      - name: Create Issue for Update Notification
+        if: steps.check-updates.outputs.updated == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'auto-update,aliyundrive',
+              state: 'open'
+            });
+
+            // Close existing auto-update issues
+            for (const issue of issues) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }
+
+            // Create new issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🤖 AliyunDrive Auto-Updated to v${{ steps.check-updates.outputs.new_version }}`,
+              body: `## 🎉 AliyunDrive has been automatically updated!
+
+            **Version Change:**
+            - **From:** v${{ steps.check-updates.outputs.old_version }}
+            - **To:** v${{ steps.check-updates.outputs.new_version }}
+
+            **Download URL:**
+            \`https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe\`
+
+            **Installation:**
+            \`\`\`powershell
+            # Add bucket (if not already added)
+            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
+
+            # Install or update
+            scoop install gz4zzxc/aliyundrive
+            # or
+            scoop update aliyundrive
+            \`\`\`
+
+            **Files Updated:**
+            - \`bucket/aliyundrive.json\`
+            - \`README.md\`
+
+            **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
+            *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
+              labels: ['auto-update', 'aliyundrive', 'enhancement']
+            });
+
+      - name: Create release if major update
+        if: steps.check-updates.outputs.updated == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: aliyundrive-v${{ steps.check-updates.outputs.new_version }}
+          release_name: AliyunDrive v${{ steps.check-updates.outputs.new_version }}
+          body: |
+            🎉 AliyunDrive has been automatically updated!
+
+            **Changes:**
+            - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
+            - Download URL: https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe
+
+            **Installation:**
+            ```powershell
+            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
+            scoop install gz4zzxc/aliyundrive
+            ```
+
+            **Or update existing installation:**
+            ```powershell
+            scoop update aliyundrive
+            ```
+          draft: false
+          prerelease: false
