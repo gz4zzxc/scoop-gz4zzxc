@@ -9,13 +9,46 @@
         "安装后可在开始菜单或桌面找到阿里云盘图标",
         "首次使用需要登录阿里云账号"
     ],
-    "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-6.8.7.exe",
-    "hash": "sha256:placeholder_hash_will_be_updated_by_autoupdate",
+    "url": "https://raw.githubusercontent.com/gz4zzxc/scoop-gz4zzxc/main/placeholder.txt#/aDrive-6.8.7.exe",
+    "hash": "df33e7705059e9276a6652a492a980edf6fe174edd8c4f5c1641f1ab9abec643",
+    "pre_install": [
+        "Write-Host 'Preparing to download 阿里云盘...' -ForegroundColor Yellow",
+        "# Remove placeholder file if it exists",
+        "$placeholderFile = \"$dir\\aDrive-$version.exe\"",
+        "if (Test-Path $placeholderFile) { Remove-Item $placeholderFile -Force }",
+        "",
+        "Write-Host 'Downloading 阿里云盘 with proper User-Agent...' -ForegroundColor Yellow",
+        "$downloadUrl = \"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe\"",
+        "$outputFile = \"$dir\\aDrive-$version.exe\"",
+        "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'",
+        "",
+        "try {",
+        "    Write-Host 'Attempting download with Invoke-WebRequest...' -ForegroundColor Cyan",
+        "    Invoke-WebRequest -Uri $downloadUrl -UserAgent $userAgent -OutFile $outputFile -UseBasicParsing",
+        "    Write-Host '✓ Download completed successfully' -ForegroundColor Green",
+        "} catch {",
+        "    Write-Host '✗ Primary download method failed, trying alternative...' -ForegroundColor Red",
+        "    try {",
+        "        $webClient = New-Object System.Net.WebClient",
+        "        $webClient.Headers.Add('User-Agent', $userAgent)",
+        "        $webClient.DownloadFile($downloadUrl, $outputFile)",
+        "        Write-Host '✓ Download completed with WebClient' -ForegroundColor Green",
+        "    } catch {",
+        "        Write-Host '✗ All download methods failed. Error: ' + $_.Exception.Message -ForegroundColor Red",
+        "        throw 'Failed to download 阿里云盘 installer'",
+        "    }",
+        "}"
+    ],
     "installer": {
         "script": [
             "Write-Host 'Installing 阿里云盘...' -ForegroundColor Green",
-            "Start-Process -Wait -FilePath \"$dir\\aDrive-$version.exe\" -ArgumentList '/S' -PassThru | Out-Null",
-            "Write-Host '阿里云盘 installation completed.' -ForegroundColor Green"
+            "$installerPath = \"$dir\\aDrive-$version.exe\"",
+            "if (-not (Test-Path $installerPath)) {",
+            "    Write-Host '✗ Installer file not found, installation failed' -ForegroundColor Red",
+            "    exit 1",
+            "}",
+            "Start-Process -Wait -FilePath $installerPath -ArgumentList '/S' -PassThru | Out-Null",
+            "Write-Host '✓ 阿里云盘 installation completed.' -ForegroundColor Green"
         ]
     },
     "post_install": [
