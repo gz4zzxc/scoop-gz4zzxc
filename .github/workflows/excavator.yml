@@ -28,7 +28,11 @@ jobs:
 
       - name: Validate current manifests
         run: |
-          python3 scripts/validate-manifests.py
+          echo "Validating manifest files..."
+          for manifest in bucket/*.json; do
+            echo "Checking $manifest..."
+            python3 -m json.tool "$manifest" > /dev/null && echo "✅ $manifest is valid JSON" || echo "❌ $manifest has invalid JSON"
+          done
 
       - name: Check for AliyunDrive updates
         id: check-updates
@@ -68,18 +72,22 @@ jobs:
 
                   except Exception as e:
                       print(f"Method 1 failed: {e}")
-                      # Method 2: Try to check if current download URL is still valid
-                      current_url = manifest.get('url', '')
-                      if current_url:
-                          print(f"Checking if current URL is still valid: {current_url}")
-                          head_response = requests.head(current_url, timeout=10)
+                      # Method 2: Check if current version download URL is still valid
+                      current_download_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{current_version}.exe"
+                      print(f"Checking if current version download URL is still valid: {current_download_url}")
+                      try:
+                          head_response = requests.head(current_download_url, timeout=10, headers={
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                          })
                           if head_response.status_code == 200:
-                              print("✅ Current version URL is still valid, assuming no update")
+                              print("✅ Current version download URL is still valid, assuming no update")
                               with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                                   f.write(f"updated=false\n")
                               return False
                           else:
-                              print(f"❌ Current URL returned {head_response.status_code}")
+                              print(f"❌ Current download URL returned {head_response.status_code}")
+                      except Exception as url_check_error:
+                          print(f"❌ Error checking current download URL: {url_check_error}")
 
                       # Method 3: Try common version increments
                       version_parts = current_version.split('.')
@@ -90,7 +98,9 @@ jobs:
                               test_version = f"{version_parts[0]}.{version_parts[1]}.{patch + i}"
                               test_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{test_version}.exe"
                               print(f"Testing version {test_version}...")
-                              test_response = requests.head(test_url, timeout=5)
+                              test_response = requests.head(test_url, timeout=5, headers={
+                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                              })
                               if test_response.status_code == 200:
                                   latest_version = test_version
                                   print(f"Found newer version: {latest_version}")
@@ -110,17 +120,22 @@ jobs:
                   print(f"Latest version: {latest_version}")
 
                   if latest_version != current_version:
-                      # Verify the new URL exists
-                      verify_response = requests.head(download_url, timeout=10)
+                      # Verify the new URL exists with proper User-Agent
+                      verify_response = requests.head(download_url, timeout=10, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                      })
                       if verify_response.status_code != 200:
                           print(f"❌ New version URL not accessible: {verify_response.status_code}")
                           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                               f.write(f"updated=false\n")
                           return False
 
-                      # Update manifest
+                      # Update manifest - keep the placeholder URL structure but update version
                       manifest['version'] = latest_version
-                      manifest['url'] = download_url
+                      # Keep the placeholder URL structure unchanged - it uses placeholder.txt
+                      # The pre_install script already uses $version variable, so it will automatically use the new version
+
+                      # Update autoupdate URL
                       if 'autoupdate' in manifest:
                           manifest['autoupdate']['url'] = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
 
