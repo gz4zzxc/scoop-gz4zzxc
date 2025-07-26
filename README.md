@@ -38,6 +38,16 @@ scoop install gz4zzxc/aliyundrive
 scoop install gz4zzxc/7zip
 ```
 
+### AliyunDrive Installation Notes
+
+The AliyunDrive manifest has been specially configured to handle download restrictions:
+
+- **Automatic User-Agent Handling**: The manifest automatically downloads the installer with proper User-Agent headers to avoid 403 Forbidden errors
+- **Fallback Download Method**: If the primary download method fails, it automatically tries an alternative approach
+- **Progress Feedback**: Clear progress indicators and error messages during download and installation
+
+If you encounter any download issues, the manifest includes comprehensive error handling and will attempt multiple download methods automatically.
+
 ## Auto-Update
 
 This bucket includes an automated update system that checks for new versions daily:
