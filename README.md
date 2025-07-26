@@ -56,18 +56,12 @@ This bucket includes an automated update system that checks for new versions dai
 - **Target**: AliyunDrive client updates
 - **Actions**: Automatically updates manifest files and creates releases
 
-See [docs/auto-update-workflow.md](docs/auto-update-workflow.md) for detailed information.
-
-## Scripts
-
-- `scripts/validate-manifests.py` - Validate all manifest files
-
 ## Contributing
 
 1. Fork this repository
 2. Create your feature branch (`git checkout -b feature/new-app`)
 3. Add your manifest file to the `bucket/` directory
-4. Test your manifest using `python3 scripts/validate-manifests.py`
+4. Test your manifest using `scoop install <path-to-manifest>`
 5. Commit your changes (`git commit -am 'Add new app'`)
 6. Push to the branch (`git push origin feature/new-app`)
 7. Create a Pull Request
