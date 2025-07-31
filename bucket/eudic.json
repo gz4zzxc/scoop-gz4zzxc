@@ -1,0 +1,104 @@
+{
+    "version": "2025-07-25",
+    "description": "欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能",
+    "homepage": "https://www.eudic.net/",
+    "license": "Proprietary",
+    "notes": [
+        "欧路词典官方桌面客户端",
+        "支持单词真人发音、英语翻译、跨软件取词等功能",
+        "内置权威英语词典，支持离线查词",
+        "支持生词本、笔记、荧光笔标记等学习功能",
+        "多平台同步，支持学习记录云端同步",
+        "安装后可在开始菜单或桌面找到欧路词典图标"
+    ],
+    "url": "https://raw.githubusercontent.com/gz4zzxc/scoop-gz4zzxc/main/placeholder.txt#/eudic_win-2025-07-25.zip",
+    "hash": "df33e7705059e9276a6652a492a980edf6fe174edd8c4f5c1641f1ab9abec643",
+    "pre_install": [
+        "Write-Host 'Preparing to download 欧路词典...' -ForegroundColor Yellow",
+        "# Remove placeholder file if it exists",
+        "$placeholderFile = \"$dir\\eudic_win-$version.zip\"",
+        "if (Test-Path $placeholderFile) { Remove-Item $placeholderFile -Force }",
+        "",
+        "Write-Host 'Downloading 欧路词典 with proper User-Agent...' -ForegroundColor Yellow",
+        "$downloadUrl = \"https://www.eudic.net/download/eudic_win.zip?v=$version\"",
+        "$outputFile = \"$dir\\eudic_win-$version.zip\"",
+        "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'",
+        "",
+        "try {",
+        "    Write-Host 'Attempting download with Invoke-WebRequest...' -ForegroundColor Cyan",
+        "    Invoke-WebRequest -Uri $downloadUrl -UserAgent $userAgent -OutFile $outputFile -UseBasicParsing",
+        "    Write-Host '✓ Download completed successfully' -ForegroundColor Green",
+        "} catch {",
+        "    Write-Host '✗ Primary download method failed, trying alternative...' -ForegroundColor Red",
+        "    try {",
+        "        $webClient = New-Object System.Net.WebClient",
+        "        $webClient.Headers.Add('User-Agent', $userAgent)",
+        "        $webClient.DownloadFile($downloadUrl, $outputFile)",
+        "        Write-Host '✓ Download completed with WebClient' -ForegroundColor Green",
+        "    } catch {",
+        "        Write-Host '✗ All download methods failed. Error: ' + $_.Exception.Message -ForegroundColor Red",
+        "        throw 'Failed to download 欧路词典 installer'",
+        "    }",
+        "}",
+        "",
+        "# Extract the downloaded zip file",
+        "Write-Host 'Extracting 欧路词典...' -ForegroundColor Yellow",
+        "try {",
+        "    Expand-Archive -Path $outputFile -DestinationPath $dir -Force",
+        "    Write-Host '✓ Extraction completed successfully' -ForegroundColor Green",
+        "    # Remove the zip file after extraction",
+        "    Remove-Item $outputFile -Force",
+        "} catch {",
+        "    Write-Host '✗ Extraction failed. Error: ' + $_.Exception.Message -ForegroundColor Red",
+        "    throw 'Failed to extract 欧路词典 archive'",
+        "}"
+    ],
+    "installer": {
+        "script": [
+            "Write-Host 'Installing 欧路词典...' -ForegroundColor Green",
+            "# Look for the installer executable in the extracted files",
+            "$installerPath = Get-ChildItem -Path $dir -Filter '*.exe' -Recurse | Where-Object { $_.Name -like '*eudic*' -or $_.Name -like '*setup*' -or $_.Name -like '*install*' } | Select-Object -First 1 -ExpandProperty FullName",
+            "if (-not $installerPath) {",
+            "    # Fallback: look for any .exe file",
+            "    $installerPath = Get-ChildItem -Path $dir -Filter '*.exe' -Recurse | Select-Object -First 1 -ExpandProperty FullName",
+            "}",
+            "if (-not $installerPath) {",
+            "    Write-Host '✗ Installer executable not found, installation failed' -ForegroundColor Red",
+            "    exit 1",
+            "}",
+            "Write-Host \"Found installer: $installerPath\" -ForegroundColor Cyan",
+            "Start-Process -Wait -FilePath $installerPath -ArgumentList '/S' -PassThru | Out-Null",
+            "Write-Host '✓ 欧路词典 installation completed.' -ForegroundColor Green"
+        ]
+    },
+    "post_install": [
+        "Write-Host '欧路词典已安装完成！' -ForegroundColor Cyan",
+        "Write-Host '您可以在开始菜单或桌面找到欧路词典图标' -ForegroundColor Yellow",
+        "Write-Host '首次使用建议登录账号以同步学习记录' -ForegroundColor Yellow",
+        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
+    ],
+    "uninstaller": {
+        "script": [
+            "Write-Host 'Uninstalling 欧路词典...' -ForegroundColor Yellow",
+            "$uninstallPath = Get-ChildItem \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\" | Get-ItemProperty | Where-Object { $_.DisplayName -like '*欧路词典*' -or $_.DisplayName -like '*Eudic*' } | Select-Object -ExpandProperty UninstallString",
+            "if ($uninstallPath) {",
+            "    if ($uninstallPath -match '\"(.+?)\"') {",
+            "        $uninstallExe = $matches[1]",
+            "        Start-Process -Wait -FilePath $uninstallExe -ArgumentList '/S' -PassThru | Out-Null",
+            "        Write-Host '欧路词典 uninstalled successfully.' -ForegroundColor Green",
+            "    } else {",
+            "        Write-Host 'Could not find uninstaller.' -ForegroundColor Red",
+            "    }",
+            "} else {",
+            "    Write-Host '欧路词典 is not installed.' -ForegroundColor Yellow",
+            "}"
+        ]
+    },
+    "checkver": {
+        "url": "https://www.eudic.net/v4/en/app/download",
+        "regex": "发布日期: ([\\d-]+)"
+    },
+    "autoupdate": {
+        "url": "https://www.eudic.net/download/eudic_win.zip?v=$version"
+    }
+}
