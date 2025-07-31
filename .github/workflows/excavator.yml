@@ -196,21 +196,26 @@ jobs:
                       response.raise_for_status()
 
                       # Extract version from the page content
-                      # Look for patterns like "最新软件版本：25.7.3" or similar
+                      # Look for Windows version release date pattern specifically
                       version_patterns = [
-                          r'最新软件版本[：:]\s*([0-9]+\.[0-9]+\.[0-9]+)',
-                          r'版本[：:]\s*([0-9]+\.[0-9]+\.[0-9]+)',
-                          r'Version[：:]\s*([0-9]+\.[0-9]+\.[0-9]+)',
-                          r'v([0-9]+\.[0-9]+\.[0-9]+)',
-                          r'([0-9]+\.[0-9]+\.[0-9]+)'
+                          r'欧路词典 Windows[^<]*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})',
+                          r'Windows[^<]*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})'
                       ]
 
                       latest_version = None
                       for pattern in version_patterns:
                           version_match = re.search(pattern, response.text, re.IGNORECASE)
                           if version_match:
-                              latest_version = version_match.group(1)
-                              print(f"Found version from download page: {latest_version}")
+                              release_date = version_match.group(1)
+                              print(f"Found release date from download page: {release_date}")
+                              # Convert date to version format (e.g., 2025-07-25 -> 25.7.25)
+                              date_parts = release_date.split('-')
+                              if len(date_parts) == 3:
+                                  year = date_parts[0][2:]  # Get last 2 digits of year
+                                  month = str(int(date_parts[1]))  # Remove leading zero
+                                  day = str(int(date_parts[2]))    # Remove leading zero
+                                  latest_version = f"{year}.{month}.{day}"
+                                  print(f"Converted to version format: {latest_version}")
                               break
 
                       if not latest_version:
