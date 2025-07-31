@@ -198,13 +198,13 @@ jobs:
                       # Extract version from the page content
                       # Look for Windows version release date pattern specifically
                       version_patterns = [
-                          r'欧路词典 Windows[^<]*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})',
-                          r'Windows[^<]*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})'
+                          r'欧路词典 Windows.*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})',
+                          r'Windows.*?发布日期:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})'
                       ]
 
                       latest_version = None
                       for pattern in version_patterns:
-                          version_match = re.search(pattern, response.text, re.IGNORECASE)
+                          version_match = re.search(pattern, response.text, re.IGNORECASE | re.DOTALL)
                           if version_match:
                               release_date = version_match.group(1)
                               print(f"Found release date from download page: {release_date}")
