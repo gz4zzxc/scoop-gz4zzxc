@@ -12,7 +12,7 @@
         "安装后可在开始菜单或桌面找到欧路词典图标"
     ],
     "url": "https://static.frdic.com/pkg/eudic_win.zip",
-    "hash": "56bc05a5b678f97a32a5a4ad07b55cf53bebeafb7c9e64b931d6244170fa11ce",
+    "hash": "cbb10fdd5b5d2d80450055056148ea5bed60d0156fda44a137ed0c172bfbdc35",
     "pre_install": [
         "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow"
     ],
