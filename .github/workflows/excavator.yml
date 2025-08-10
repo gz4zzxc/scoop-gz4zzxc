@@ -302,17 +302,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Excavator via Scoop
+      - name: Custom update trafficmonitor
         shell: pwsh
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-          iwr -useb get.scoop.sh | iex
-          scoop bucket add main
-          scoop update
-          scoop install main/excavator
-          
-          # 运行 Excavator（对整个 bucket 执行）
-          excavator --bucket gz4zzxc --dir bucket
+          $ErrorActionPreference = 'Stop'
+          $repo = 'zhongyang219/TrafficMonitor'
+          $api = "https://api.github.com/repos/$repo/releases/latest"
+          $headers = @{ 'User-Agent' = 'gh-actions'; 'Accept' = 'application/vnd.github+json' }
+          $resp = Invoke-RestMethod -Uri $api -Headers $headers -UseBasicParsing
+          if (-not $resp.tag_name) { throw 'Failed to fetch latest release' }
+          $tag = [string]$resp.tag_name  # e.g. V1.85.1
+          $version = $tag.TrimStart('V','v')
+
+          Write-Host "Latest tag: $tag; version: $version"
+
+          $assets = @{}
+          foreach ($asset in $resp.assets) {
+            $assets[$asset.name] = $asset.browser_download_url
+          }
+
+          $map = @{
+            'x64'   = "TrafficMonitor_V$version`_x64.zip"
+            'x86'   = "TrafficMonitor_V$version`_x86.zip"
+            'arm64' = "TrafficMonitor_V$version`_arm64ec.zip"
+          }
+
+          $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "tm_$version") -Force
+          $hashes = @{}
+          foreach ($arch in $map.Keys) {
+            $name = $map[$arch]
+            if (-not $assets.ContainsKey($name)) { throw "Missing asset $name in latest release" }
+            $url = $assets[$name]
+            $out = Join-Path $tmp.FullName $name
+            Write-Host "Downloading $name ..."
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $out
+            $sha = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpper()
+            $hashes[$arch] = @{ url = $url; sha = $sha }
+          }
+
+          $manifestPath = 'bucket/trafficmonitor.json'
+          $json = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          $json.version = $version
+          $json.architecture.'64bit'.url  = $hashes['x64'].url
+          $json.architecture.'64bit'.hash = $hashes['x64'].sha
+          $json.architecture.'32bit'.url  = $hashes['x86'].url
+          $json.architecture.'32bit'.hash = $hashes['x86'].sha
+          $json.architecture.arm64.url    = $hashes['arm64'].url
+          $json.architecture.arm64.hash   = $hashes['arm64'].sha
+
+          ($json | ConvertTo-Json -Depth 32) | Out-File $manifestPath -Encoding UTF8
+          Write-Host "Updated $manifestPath to $version"
 
       - name: Check for changes
         id: check-changes
@@ -334,9 +373,9 @@ jobs:
           author_name: GitHub Actions Bot
           author_email: actions@github.com
           message: |
-            🤖 Auto-update via Excavator on Windows runner
+            🤖 Auto-update Traffic Monitor via GitHub API (Windows runner)
           add: |
-            bucket/*.json
+            bucket/trafficmonitor.json
 
       - name: Create summary issue
         if: steps.check-changes.outputs.no-changes == 'false'
@@ -344,45 +383,10 @@ jobs:
         with:
           script: |
             // 获取更新的应用列表
-            const { data: diff } = await github.rest.repos.compareCommits({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              base: context.sha,
-              head: context.sha
+              title: `🤖 Traffic Monitor Auto-Updated`,
+              body: `Updated Traffic Monitor manifest to latest GitHub release.\n\nFiles Updated:\n- bucket/trafficmonitor.json\n\nWorkflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`,
+              labels: ['auto-update', 'trafficmonitor']
             });
-
-            const updatedApps = diff.files
-              .filter(file => file.filename.startsWith('bucket/') && file.filename.endsWith('.json'))
-              .map(file => file.filename.replace('bucket/', '').replace('.json', ''));
-
-            if (updatedApps.length > 0) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `🤖 Apps Auto-Updated via Excavator`,
-                body: `## 🎉 Apps have been automatically updated via Excavator!
-
-            **Updated Apps:**
-            ${updatedApps.map(app => `- \`${app}\``).join('\n')}
-
-            **Update Method:**
-            - Used Windows runner + Scoop Excavator
-            - Updated at: ${{ github.run_id }}
-
-            **Installation:**
-            \`\`\`powershell
-            # Add bucket (if not already added)
-            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
-
-            # Update specific app
-            scoop update ${updatedApps[0]}
-            \`\`\`
-
-            **Files Updated:**
-            ${updatedApps.map(app => `- \`bucket/${app}.json\``).join('\n')}
-
-            ---
-            *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
-                labels: ['auto-update', 'excavator', 'enhancement']
-              });
-            }
