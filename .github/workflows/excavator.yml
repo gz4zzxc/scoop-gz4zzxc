@@ -293,3 +293,118 @@ jobs:
             ```
           draft: false
           prerelease: false
+
+  # 新增：使用官方 Excavator 自动更新其他应用
+  update-other-apps:
+    runs-on: ubuntu-latest
+    needs: update-manifests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Scoop
+        run: |
+          # 安装 Scoop
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+
+      - name: Add main bucket
+        run: |
+          scoop bucket add main
+
+      - name: Run Excavator
+        run: |
+          # 使用 Excavator 运行 checkver 和 autoupdate
+          # 这会自动检测并更新所有有 checkver/autoupdate 配置的应用
+          scoop install main/excavator
+          
+          # 运行 Excavator 更新所有应用
+          excavator --bucket gz4zzxc --dir bucket
+          
+          # 或者逐个运行 checkver 和 autoupdate
+          # scoop checkver -u trafficmonitor
+          # scoop checkver -u 7zip
+          # scoop checkver -u eudic
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          # 检查是否有文件被修改
+          if git diff --quiet; then
+            echo "no-changes=true" >> $GITHUB_OUTPUT
+            echo "✅ No changes detected"
+          else
+            echo "no-changes=false" >> $GITHUB_OUTPUT
+            echo "📝 Changes detected"
+            git diff --name-only
+          fi
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.no-changes == 'false'
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: GitHub Actions Bot
+          author_email: actions@github.com
+          message: |
+            🤖 Auto-update apps via Excavator
+
+            - Updated apps using official ScoopInstaller/Excavator
+            - Auto-detected from checkver/autoupdate configurations
+            - Updated at: ${{ github.run_id }}
+          add: |
+            bucket/*.json
+
+      - name: Create summary issue
+        if: steps.check-changes.outputs.no-changes == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 获取更新的应用列表
+            const { data: diff } = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: context.sha,
+              head: context.sha
+            });
+
+            const updatedApps = diff.files
+              .filter(file => file.filename.startsWith('bucket/') && file.filename.endsWith('.json'))
+              .map(file => file.filename.replace('bucket/', '').replace('.json', ''));
+
+            if (updatedApps.length > 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🤖 Apps Auto-Updated via Excavator`,
+                body: `## 🎉 Apps have been automatically updated via Excavator!
+
+            **Updated Apps:**
+            ${updatedApps.map(app => `- \`${app}\``).join('\n')}
+
+            **Update Method:**
+            - Used official ScoopInstaller/Excavator
+            - Ran checkver/autoupdate for all configured apps
+            - Updated at: ${{ github.run_id }}
+
+            **Installation:**
+            \`\`\`powershell
+            # Add bucket (if not already added)
+            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
+
+            # Update specific app
+            scoop update ${updatedApps[0]}
+            \`\`\`
+
+            **Files Updated:**
+            ${updatedApps.map(app => `- \`bucket/${app}.json\``).join('\n')}
+
+            ---
+            *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
+                labels: ['auto-update', 'excavator', 'enhancement']
+              });
+            }
