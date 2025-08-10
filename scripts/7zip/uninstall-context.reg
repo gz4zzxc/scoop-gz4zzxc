@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\7-Zip]
+
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\7-Zip]
+
+[-HKEY_CURRENT_USER\Software\Classes\.7z]
+
+[-HKEY_CURRENT_USER\Software\Classes\7-Zip.7z]

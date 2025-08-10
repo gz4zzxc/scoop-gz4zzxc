@@ -1,0 +1,80 @@
+{
+    "version": "25.7.3",
+    "description": "欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能",
+    "homepage": "https://www.eudic.net/",
+    "license": "Proprietary",
+    "notes": [
+        "欧路词典官方桌面客户端",
+        "支持单词真人发音、英语翻译、跨软件取词等功能",
+        "内置权威英语词典，支持离线查词",
+        "支持生词本、笔记、荧光笔标记等学习功能",
+        "多平台同步，支持学习记录云端同步",
+        "安装后可在开始菜单或桌面找到欧路词典图标"
+    ],
+    "url": "https://static.frdic.com/pkg/eudic_win.zip",
+    "hash": "sha256:skip",
+    "pre_install": [
+        "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow"
+    ],
+    "installer": {
+        "script": [
+            "Write-Host 'Installing 欧路词典...' -ForegroundColor Green",
+            "# Extract the eudic_win.exe using 7zip",
+            "if (Test-Path \"$dir\\eudic_win.exe\") {",
+            "    Write-Host 'Extracting eudic_win.exe...' -ForegroundColor Cyan",
+            "    Expand-7ZipArchive \"$dir\\eudic_win.exe\" \"$dir\\\" -Removal",
+            "    if (Test-Path \"$dir\\app.7z\") {",
+            "        Write-Host 'Extracting app.7z...' -ForegroundColor Cyan",
+            "        Expand-7ZipArchive \"$dir\\app.7z\" \"$dir\" -Removal",
+            "    }",
+            "    # Clean up unnecessary files",
+            "    @('uninst.exe.nsis', '$PLUGINSDIR') | ForEach-Object {",
+            "        if (Test-Path \"$dir\\$_\") {",
+            "            Remove-Item \"$dir\\$_\" -Force -Recurse -ErrorAction SilentlyContinue",
+            "        }",
+            "    }",
+            "    Write-Host '✓ 欧路词典 installation completed.' -ForegroundColor Green",
+            "} else {",
+            "    Write-Host '✗ eudic_win.exe not found, installation failed' -ForegroundColor Red",
+            "    exit 1",
+            "}"
+        ]
+    },
+    "bin": "eudic.exe",
+    "shortcuts": [
+        [
+            "eudic.exe",
+            "欧路词典"
+        ]
+    ],
+    "post_install": [
+        "Write-Host '欧路词典已安装完成！' -ForegroundColor Cyan",
+        "Write-Host '您可以在开始菜单或桌面找到欧路词典图标' -ForegroundColor Yellow",
+        "Write-Host '首次使用建议登录账号以同步学习记录' -ForegroundColor Yellow",
+        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
+    ],
+    "uninstaller": {
+        "script": [
+            "Write-Host 'Uninstalling 欧路词典...' -ForegroundColor Yellow",
+            "$uninstallPath = Get-ChildItem \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\" | Get-ItemProperty | Where-Object { $_.DisplayName -like '*欧路词典*' -or $_.DisplayName -like '*Eudic*' } | Select-Object -ExpandProperty UninstallString",
+            "if ($uninstallPath) {",
+            "    if ($uninstallPath -match '\"(.+?)\"') {",
+            "        $uninstallExe = $matches[1]",
+            "        Start-Process -Wait -FilePath $uninstallExe -ArgumentList '/S' -PassThru | Out-Null",
+            "        Write-Host '欧路词典 uninstalled successfully.' -ForegroundColor Green",
+            "    } else {",
+            "        Write-Host 'Could not find uninstaller.' -ForegroundColor Red",
+            "    }",
+            "} else {",
+            "    Write-Host '欧路词典 is not installed.' -ForegroundColor Yellow",
+            "}"
+        ]
+    },
+    "checkver": {
+        "url": "https://www.eudic.net/v4/en/app/download",
+        "regex": "最新软件版本：\\s*([\\d.]+)"
+    },
+    "autoupdate": {
+        "url": "https://static.frdic.com/pkg/eudic_win.zip"
+    }
+}

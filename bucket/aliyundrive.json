@@ -1,0 +1,83 @@
+{
+    "version": "6.8.7",
+    "description": "阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品",
+    "homepage": "https://www.aliyundrive.com/",
+    "license": "Proprietary",
+    "notes": [
+        "阿里云盘官方桌面客户端",
+        "支持快速上传下载、文件管理、在线预览等功能",
+        "安装后可在开始菜单或桌面找到阿里云盘图标",
+        "首次使用需要登录阿里云账号"
+    ],
+    "url": "https://raw.githubusercontent.com/gz4zzxc/scoop-gz4zzxc/main/placeholder.txt#/aDrive-6.8.7.exe",
+    "hash": "df33e7705059e9276a6652a492a980edf6fe174edd8c4f5c1641f1ab9abec643",
+    "pre_install": [
+        "Write-Host 'Preparing to download 阿里云盘...' -ForegroundColor Yellow",
+        "# Remove placeholder file if it exists",
+        "$placeholderFile = \"$dir\\aDrive-$version.exe\"",
+        "if (Test-Path $placeholderFile) { Remove-Item $placeholderFile -Force }",
+        "",
+        "Write-Host 'Downloading 阿里云盘 with proper User-Agent...' -ForegroundColor Yellow",
+        "$downloadUrl = \"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe\"",
+        "$outputFile = \"$dir\\aDrive-$version.exe\"",
+        "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'",
+        "",
+        "try {",
+        "    Write-Host 'Attempting download with Invoke-WebRequest...' -ForegroundColor Cyan",
+        "    Invoke-WebRequest -Uri $downloadUrl -UserAgent $userAgent -OutFile $outputFile -UseBasicParsing",
+        "    Write-Host '✓ Download completed successfully' -ForegroundColor Green",
+        "} catch {",
+        "    Write-Host '✗ Primary download method failed, trying alternative...' -ForegroundColor Red",
+        "    try {",
+        "        $webClient = New-Object System.Net.WebClient",
+        "        $webClient.Headers.Add('User-Agent', $userAgent)",
+        "        $webClient.DownloadFile($downloadUrl, $outputFile)",
+        "        Write-Host '✓ Download completed with WebClient' -ForegroundColor Green",
+        "    } catch {",
+        "        Write-Host '✗ All download methods failed. Error: ' + $_.Exception.Message -ForegroundColor Red",
+        "        throw 'Failed to download 阿里云盘 installer'",
+        "    }",
+        "}"
+    ],
+    "installer": {
+        "script": [
+            "Write-Host 'Installing 阿里云盘...' -ForegroundColor Green",
+            "$installerPath = \"$dir\\aDrive-$version.exe\"",
+            "if (-not (Test-Path $installerPath)) {",
+            "    Write-Host '✗ Installer file not found, installation failed' -ForegroundColor Red",
+            "    exit 1",
+            "}",
+            "Start-Process -Wait -FilePath $installerPath -ArgumentList '/S' -PassThru | Out-Null",
+            "Write-Host '✓ 阿里云盘 installation completed.' -ForegroundColor Green"
+        ]
+    },
+    "post_install": [
+        "Write-Host '阿里云盘已安装完成！' -ForegroundColor Cyan",
+        "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",
+        "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow"
+    ],
+    "uninstaller": {
+        "script": [
+            "Write-Host 'Uninstalling 阿里云盘...' -ForegroundColor Yellow",
+            "$uninstallPath = Get-ChildItem \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\" | Get-ItemProperty | Where-Object { $_.DisplayName -like '*阿里云盘*' -or $_.DisplayName -like '*aDrive*' } | Select-Object -ExpandProperty UninstallString",
+            "if ($uninstallPath) {",
+            "    if ($uninstallPath -match '\"(.+?)\"') {",
+            "        $uninstallExe = $matches[1]",
+            "        Start-Process -Wait -FilePath $uninstallExe -ArgumentList '/S' -PassThru | Out-Null",
+            "        Write-Host '阿里云盘 uninstalled successfully.' -ForegroundColor Green",
+            "    } else {",
+            "        Write-Host 'Could not find uninstaller.' -ForegroundColor Red",
+            "    }",
+            "} else {",
+            "    Write-Host '阿里云盘 is not installed.' -ForegroundColor Yellow",
+            "}"
+        ]
+    },
+    "checkver": {
+        "url": "https://www.aliyundrive.com/download",
+        "regex": "aDrive-([\\d.]+)\\.exe"
+    },
+    "autoupdate": {
+        "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
+    }
+}

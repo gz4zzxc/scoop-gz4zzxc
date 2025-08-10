@@ -1,0 +1,27 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Classes\*\shell\7-Zip]
+@="7-Zip"
+"Icon"="$7zip_root\\7z.exe,0"
+
+[HKEY_CURRENT_USER\Software\Classes\*\shell\7-Zip\command]
+@="\"$7zip_root\\7zFM.exe\" \"%1\"\"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\7-Zip]
+@="7-Zip"
+"Icon"="$7zip_root\\7z.exe,0"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\7-Zip\command]
+@="\"$7zip_root\\7zFM.exe\" \"%1\"\"
+
+[HKEY_CURRENT_USER\Software\Classes\.7z]
+@="7-Zip.7z"
+
+[HKEY_CURRENT_USER\Software\Classes\7-Zip.7z]
+@="7z Archive"
+
+[HKEY_CURRENT_USER\Software\Classes\7-Zip.7z\DefaultIcon]
+@="$7zip_root\\7z.dll,0"
+
+[HKEY_CURRENT_USER\Software\Classes\7-Zip.7z\shell\open\command]
+@="\"$7zip_root\\7zFM.exe\" \"%1\"\""
