@@ -296,53 +296,36 @@ jobs:
 
   # 新增：使用官方 Excavator 自动更新其他应用
   update-other-apps:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: update-manifests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install Scoop
+      - name: Run updates (Scoop on Windows)
+        shell: pwsh
         run: |
-          # 安装 Scoop
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-          Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-
-      - name: Add main bucket
-        run: |
+          iwr -useb get.scoop.sh | iex
           scoop bucket add main
-
-      - name: Run Excavator
-        run: |
-          # 使用 Excavator 运行 checkver 和 autoupdate
-          # 这会自动检测并更新所有有 checkver/autoupdate 配置的应用
-          scoop install main/excavator
+          scoop update
           
-          # 运行 Excavator 更新所有应用
-          excavator --bucket gz4zzxc --dir bucket
-          
-          # 或者逐个运行 checkver 和 autoupdate
-          # scoop checkver -u trafficmonitor
-          # scoop checkver -u 7zip
-          # scoop checkver -u eudic
+          # 仅对能稳定 checkver 的应用执行（避免 eudic 阻塞）
+          scoop checkver trafficmonitor -u -dir bucket
+          scoop checkver 7zip -u -dir bucket
 
       - name: Check for changes
         id: check-changes
+        shell: pwsh
         run: |
-          # 检查是否有文件被修改
-          if git diff --quiet; then
-            echo "no-changes=true" >> $GITHUB_OUTPUT
-            echo "✅ No changes detected"
-          else
-            echo "no-changes=false" >> $GITHUB_OUTPUT
-            echo "📝 Changes detected"
+          if (git diff --quiet) {
+            "no-changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "✅ No changes detected"
+          } else {
+            "no-changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "📝 Changes detected"
             git diff --name-only
-          fi
+          }
 
       - name: Commit and push changes
         if: steps.check-changes.outputs.no-changes == 'false'
@@ -351,11 +334,8 @@ jobs:
           author_name: GitHub Actions Bot
           author_email: actions@github.com
           message: |
-            🤖 Auto-update apps via Excavator
-
-            - Updated apps using official ScoopInstaller/Excavator
-            - Auto-detected from checkver/autoupdate configurations
-            - Updated at: ${{ github.run_id }}
+            🤖 Auto-update via Windows runner
+            - trafficmonitor & 7zip via scoop checkver
           add: |
             bucket/*.json
 
@@ -380,15 +360,14 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `🤖 Apps Auto-Updated via Excavator`,
-                body: `## 🎉 Apps have been automatically updated via Excavator!
+                title: `🤖 Apps Auto-Updated via Scoop checkver`,
+                body: `## 🎉 Apps have been automatically updated via Scoop checkver!
 
             **Updated Apps:**
             ${updatedApps.map(app => `- \`${app}\``).join('\n')}
 
             **Update Method:**
-            - Used official ScoopInstaller/Excavator
-            - Ran checkver/autoupdate for all configured apps
+            - Used Windows runner + Scoop checkver
             - Updated at: ${{ github.run_id }}
 
             **Installation:**
@@ -405,6 +384,6 @@ jobs:
 
             ---
             *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
-                labels: ['auto-update', 'excavator', 'enhancement']
+                labels: ['auto-update', 'enhancement']
               });
             }
