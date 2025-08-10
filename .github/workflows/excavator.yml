@@ -302,17 +302,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run updates (Scoop on Windows)
+      - name: Run Excavator via Scoop
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
           iwr -useb get.scoop.sh | iex
           scoop bucket add main
           scoop update
+          scoop install main/excavator
           
-          # 仅对能稳定 checkver 的应用执行（避免 eudic 阻塞）
-          scoop checkver trafficmonitor -u -dir bucket
-          scoop checkver 7zip -u -dir bucket
+          # 运行 Excavator（对整个 bucket 执行）
+          excavator --bucket gz4zzxc --dir bucket
 
       - name: Check for changes
         id: check-changes
@@ -334,8 +334,7 @@ jobs:
           author_name: GitHub Actions Bot
           author_email: actions@github.com
           message: |
-            🤖 Auto-update via Windows runner
-            - trafficmonitor & 7zip via scoop checkver
+            🤖 Auto-update via Excavator on Windows runner
           add: |
             bucket/*.json
 
@@ -360,14 +359,14 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `🤖 Apps Auto-Updated via Scoop checkver`,
-                body: `## 🎉 Apps have been automatically updated via Scoop checkver!
+                title: `🤖 Apps Auto-Updated via Excavator`,
+                body: `## 🎉 Apps have been automatically updated via Excavator!
 
             **Updated Apps:**
             ${updatedApps.map(app => `- \`${app}\``).join('\n')}
 
             **Update Method:**
-            - Used Windows runner + Scoop checkver
+            - Used Windows runner + Scoop Excavator
             - Updated at: ${{ github.run_id }}
 
             **Installation:**
@@ -384,6 +383,6 @@ jobs:
 
             ---
             *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
-                labels: ['auto-update', 'enhancement']
+                labels: ['auto-update', 'excavator', 'enhancement']
               });
             }
