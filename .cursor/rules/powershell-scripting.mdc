@@ -1,0 +1,145 @@
+# PowerShell 脚本编写标准
+
+## 脚本结构
+
+### 错误处理
+始终使用 try-catch 块处理可能的错误：
+
+```powershell
+try {
+    # 主要操作
+    Invoke-WebRequest -Uri $url -OutFile $output
+    Write-Host "✓ 操作成功" -ForegroundColor Green
+} catch {
+    Write-Host "✗ 操作失败: $($_.Exception.Message)" -ForegroundColor Red
+    # 备用方案或退出
+    throw "操作失败"
+}
+```
+
+### 用户反馈
+使用颜色编码提供清晰的用户反馈：
+
+```powershell
+Write-Host "开始下载..." -ForegroundColor Yellow
+Write-Host "✓ 下载完成" -ForegroundColor Green
+Write-Host "✗ 下载失败" -ForegroundColor Red
+Write-Host "信息提示" -ForegroundColor Cyan
+```
+
+## 变量命名
+
+- 使用描述性变量名
+- 使用 PascalCase 命名约定
+- 避免使用缩写
+
+```powershell
+# 好的命名
+$downloadUrl = "https://example.com/file.exe"
+$outputFilePath = "$dir\application.exe"
+
+# 避免的命名
+$url = "https://example.com/file.exe"
+$out = "$dir\app.exe"
+```
+
+## 路径处理
+
+### 使用 Scoop 变量
+```powershell
+$dir          # 应用程序安装目录
+$bucketsdir   # buckets 目录
+$global       # 是否为全局安装
+```
+
+### 路径拼接
+```powershell
+# 使用 Join-Path 或字符串拼接
+$installerPath = Join-Path $dir "installer.exe"
+# 或
+$installerPath = "$dir\installer.exe"
+```
+
+## 文件操作
+
+### 检查文件存在
+```powershell
+if (Test-Path $filePath) {
+    # 文件存在
+    Remove-Item $filePath -Force
+}
+```
+
+### 读取和写入文件
+```powershell
+# 读取文件内容
+$content = Get-Content $filePath -Encoding UTF8
+
+# 写入文件
+Set-Content $filePath $content -Encoding UTF8
+```
+
+## 进程管理
+
+### 静默安装
+```powershell
+Start-Process -Wait -FilePath $installerPath -ArgumentList "/S" -PassThru | Out-Null
+```
+
+### 等待进程完成
+```powershell
+$process = Start-Process -FilePath $exePath -ArgumentList $args -PassThru
+$process.WaitForExit()
+```
+
+## 网络操作
+
+### 下载文件
+```powershell
+# 使用 Invoke-WebRequest
+Invoke-WebRequest -Uri $url -OutFile $outputFile -UseBasicParsing
+
+# 备用方法：WebClient
+$webClient = New-Object System.Net.WebClient
+$webClient.DownloadFile($url, $outputFile)
+```
+
+### 设置 User-Agent
+```powershell
+$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+Invoke-WebRequest -Uri $url -UserAgent $userAgent -OutFile $outputFile
+```
+
+## 注册表操作
+
+### 读取注册表
+```powershell
+$uninstallPath = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | 
+    Get-ItemProperty | 
+    Where-Object { $_.DisplayName -like "*应用名称*" } | 
+    Select-Object -ExpandProperty UninstallString
+```
+
+### 写入注册表
+```powershell
+# 使用 .reg 文件
+reg import $regFilePath
+```
+
+## 字符串处理
+
+### 替换字符串
+```powershell
+$content = $content.Replace('$placeholder', $actualValue)
+```
+
+### 正则表达式匹配
+```powershell
+if ($string -match 'pattern') {
+    $matchedValue = $matches[1]
+}
+```
+description:
+globs:
+alwaysApply: false
+---
