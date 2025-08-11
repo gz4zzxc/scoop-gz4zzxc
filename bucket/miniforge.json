@@ -1,0 +1,52 @@
+{
+  "version": "25.3.1-0",
+  "description": "Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器，默认使用 conda-forge 源",
+  "homepage": "https://github.com/conda-forge/miniforge",
+  "license": "BSD-3-Clause",
+  "notes": [
+    "安装完成后，建议执行：conda init 来初始化当前 Shell 环境",
+    "本清单使用静默安装且不修改系统 PATH，Scoop 会通过 shim 与 bin 配置提供可执行文件"
+  ],
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/conda-forge/miniforge/releases/download/25.3.1-0/Miniforge3-25.3.1-0-Windows-x86_64.exe",
+      "hash": "sha256:skip"
+    }
+  },
+  "installer": {
+    "script": [
+      "Write-Host 'Installing Miniforge...' -ForegroundColor Green",
+      "$exe = Get-ChildItem \"$dir\\Miniforge3-Windows-*.exe\" | Select-Object -First 1",
+      "if (-not $exe) { Write-Host '✗ Installer not found' -ForegroundColor Red; exit 1 }",
+      "Start-Process -Wait -FilePath $exe.FullName -ArgumentList '/InstallationType=JustMe', '/AddToPath=0', '/RegisterPython=0', '/S', ('/D=' + $dir)"
+    ]
+  },
+  "bin": [
+    "python.exe",
+    "Scripts\\conda.exe",
+    "condabin\\conda.bat"
+  ],
+  "checkver": {
+    "github": "conda-forge/miniforge"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe"
+      }
+    },
+    "hash": {
+      "url": "https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe.sha256",
+      "regex": "^([a-fA-F0-9]{64})"
+    }
+  },
+  "uninstaller": {
+    "script": [
+      "Write-Host 'Uninstalling Miniforge...' -ForegroundColor Yellow",
+      "$uninst = Get-ChildItem \"$dir\\Uninstall*Miniforge*.exe\" -ErrorAction SilentlyContinue | Select-Object -First 1",
+      "if ($uninst) { Start-Process -Wait -FilePath $uninst.FullName -ArgumentList '/S' } else { Write-Host 'Uninstaller not found, skipping.' -ForegroundColor DarkYellow }"
+    ]
+  }
+}
+
+
