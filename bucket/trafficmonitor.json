@@ -1,5 +1,5 @@
 {
-  "version": "1.85.1",
+  "version": "1.85.0",
   "description": "Traffic Monitor 是一款用于 Windows 的网速、CPU 与内存监控悬浮窗，支持嵌入任务栏与更换皮肤",
   "homepage": "https://github.com/zhongyang219/TrafficMonitor",
   "license": "Anti-996",
