@@ -199,9 +199,11 @@ jobs:
 
       - name: Create Pull Request for AliyunDrive update
         if: steps.check-updates.outputs.updated == 'true'
+        id: cpr_aliyun
         uses: peter-evans/create-pull-request@v6
         with:
           branch: auto/aliyundrive-${{ steps.check-updates.outputs.new_version }}
+          delete-branch: true
           commit-message: |
             chore(aliyundrive): bump to v${{ steps.check-updates.outputs.new_version }}
 
@@ -218,6 +220,22 @@ jobs:
           add-paths: |
             bucket/aliyundrive.json
             README.md
+
+      - name: Enable auto-merge for AliyunDrive PR
+        if: steps.cpr_aliyun.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr_aliyun.outputs.pull-request-number }}
+          merge-method: squash
+
+      - name: Fallback merge AliyunDrive PR (if auto-merge not available)
+        if: steps.cpr_aliyun.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.cpr_aliyun.outputs.pull-request-number }} --auto --squash --delete-branch || \
+          gh pr merge ${{ steps.cpr_aliyun.outputs.pull-request-number }} --squash --delete-branch || true
 
       # Align with official buckets: do not create issues/releases for auto updates
 
@@ -307,9 +325,11 @@ jobs:
 
       - name: Create Pull Request for Traffic Monitor update
         if: steps.check-changes.outputs.no-changes == 'false'
+        id: cpr_tm
         uses: peter-evans/create-pull-request@v6
         with:
           branch: auto/trafficmonitor-${{ steps.check-changes.id }}-${{ github.run_id }}
+          delete-branch: true
           commit-message: |
             chore(trafficmonitor): auto-update manifest to latest GitHub release
           title: "🤖 Auto-update: Traffic Monitor"
@@ -322,3 +342,19 @@ jobs:
             bucket/trafficmonitor.json
 
       # Removed issue creation for Traffic Monitor
+
+      - name: Enable auto-merge for Traffic Monitor PR
+        if: steps.cpr_tm.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr_tm.outputs.pull-request-number }}
+          merge-method: squash
+
+      - name: Fallback merge Traffic Monitor PR (if auto-merge not available)
+        if: steps.cpr_tm.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --auto --squash --delete-branch || \
+          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --squash --delete-branch || true
