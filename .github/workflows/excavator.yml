@@ -17,6 +17,9 @@ jobs:
     concurrency:
       group: update-manifests-${{ github.ref }}
       cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -204,6 +207,7 @@ jobs:
         with:
           branch: auto/aliyundrive-${{ steps.check-updates.outputs.new_version }}
           delete-branch: true
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
             chore(aliyundrive): bump to v${{ steps.check-updates.outputs.new_version }}
 
@@ -248,6 +252,9 @@ jobs:
     concurrency:
       group: update-other-apps-${{ github.ref }}
       cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -330,6 +337,7 @@ jobs:
         with:
           branch: auto/trafficmonitor-${{ steps.check-changes.id }}-${{ github.run_id }}
           delete-branch: true
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
             chore(trafficmonitor): auto-update manifest to latest GitHub release
           title: "🤖 Auto-update: Traffic Monitor"
