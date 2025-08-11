@@ -14,9 +14,13 @@ permissions:
 jobs:
   update-manifests:
     runs-on: ubuntu-latest
+    concurrency:
+      group: update-manifests-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -193,112 +197,39 @@ jobs:
           print(f"✅ Updated README version from {old_version} to {new_version}")
           EOF
 
-      - name: Commit and push changes
+      - name: Create Pull Request for AliyunDrive update
         if: steps.check-updates.outputs.updated == 'true'
-        uses: EndBug/add-and-commit@v9
+        uses: peter-evans/create-pull-request@v6
         with:
-          author_name: GitHub Actions Bot
-          author_email: actions@github.com
-          message: |
-            🤖 Auto-update AliyunDrive to v${{ steps.check-updates.outputs.new_version }}
+          branch: auto/aliyundrive-${{ steps.check-updates.outputs.new_version }}
+          commit-message: |
+            chore(aliyundrive): bump to v${{ steps.check-updates.outputs.new_version }}
 
             - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
             - Auto-detected from https://www.aliyundrive.com/download
-            - Updated at: ${{ github.run_id }}
-          add: |
+            - Run: ${{ github.run_id }}
+          title: "🤖 Auto-update: AliyunDrive v${{ steps.check-updates.outputs.new_version }}"
+          body: |
+            This PR updates AliyunDrive from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}.
+
+            - Download: https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe
+            - Updated by workflow run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          labels: auto-update, aliyundrive
+          add-paths: |
             bucket/aliyundrive.json
             README.md
 
-      - name: Create Issue for Update Notification
-        if: steps.check-updates.outputs.updated == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: 'auto-update,aliyundrive',
-              state: 'open'
-            });
+      # Align with official buckets: do not create issues/releases for auto updates
 
-            // Close existing auto-update issues
-            for (const issue of issues) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed'
-              });
-            }
-
-            // Create new issue
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🤖 AliyunDrive Auto-Updated to v${{ steps.check-updates.outputs.new_version }}`,
-              body: `## 🎉 AliyunDrive has been automatically updated!
-
-            **Version Change:**
-            - **From:** v${{ steps.check-updates.outputs.old_version }}
-            - **To:** v${{ steps.check-updates.outputs.new_version }}
-
-            **Download URL:**
-            \`https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe\`
-
-            **Installation:**
-            \`\`\`powershell
-            # Add bucket (if not already added)
-            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
-
-            # Install or update
-            scoop install gz4zzxc/aliyundrive
-            # or
-            scoop update aliyundrive
-            \`\`\`
-
-            **Files Updated:**
-            - \`bucket/aliyundrive.json\`
-            - \`README.md\`
-
-            **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            ---
-            *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
-              labels: ['auto-update', 'aliyundrive', 'enhancement']
-            });
-
-      - name: Create release if major update
-        if: steps.check-updates.outputs.updated == 'true'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: aliyundrive-v${{ steps.check-updates.outputs.new_version }}
-          release_name: AliyunDrive v${{ steps.check-updates.outputs.new_version }}
-          body: |
-            🎉 AliyunDrive has been automatically updated!
-
-            **Changes:**
-            - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
-            - Download URL: https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe
-
-            **Installation:**
-            ```powershell
-            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
-            scoop install gz4zzxc/aliyundrive
-            ```
-
-            **Or update existing installation:**
-            ```powershell
-            scoop update aliyundrive
-            ```
-          draft: false
-          prerelease: false
+      # Removed release creation step
 
   # 新增：使用官方 Excavator 自动更新其他应用
   update-other-apps:
     runs-on: windows-latest
     needs: update-manifests
+    concurrency:
+      group: update-other-apps-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -351,8 +282,15 @@ jobs:
           $json.architecture.arm64.url    = $hashes['arm64'].url
           $json.architecture.arm64.hash   = $hashes['arm64'].sha
 
-          ($json | ConvertTo-Json -Depth 32) | Out-File $manifestPath -Encoding UTF8
-          Write-Host "Updated $manifestPath to $version"
+          # Prepare new JSON content and write only when content actually changes
+          $original = Get-Content $manifestPath -Raw
+          $newContent = ($json | ConvertTo-Json -Depth 32)
+          if ($newContent -ne $original) {
+            $newContent | Set-Content -Path $manifestPath -Encoding utf8NoBOM
+            Write-Host "Updated $manifestPath to $version"
+          } else {
+            Write-Host "No real changes in $manifestPath; skip writing"
+          }
 
       - name: Check for changes
         id: check-changes
@@ -367,27 +305,20 @@ jobs:
             git diff --name-only
           }
 
-      - name: Commit and push changes
+      - name: Create Pull Request for Traffic Monitor update
         if: steps.check-changes.outputs.no-changes == 'false'
-        uses: EndBug/add-and-commit@v9
+        uses: peter-evans/create-pull-request@v6
         with:
-          author_name: GitHub Actions Bot
-          author_email: actions@github.com
-          message: |
-            🤖 Auto-update Traffic Monitor via GitHub API (Windows runner)
-          add: |
+          branch: auto/trafficmonitor-${{ steps.check-changes.id }}-${{ github.run_id }}
+          commit-message: |
+            chore(trafficmonitor): auto-update manifest to latest GitHub release
+          title: "🤖 Auto-update: Traffic Monitor"
+          body: |
+            This PR updates Traffic Monitor manifest to the latest GitHub release detected on the Windows runner.
+
+            Workflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          labels: auto-update, trafficmonitor
+          add-paths: |
             bucket/trafficmonitor.json
 
-      - name: Create summary issue
-        if: steps.check-changes.outputs.no-changes == 'false'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // 获取更新的应用列表
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🤖 Traffic Monitor Auto-Updated`,
-              body: `Updated Traffic Monitor manifest to latest GitHub release.\n\nFiles Updated:\n- bucket/trafficmonitor.json\n\nWorkflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`,
-              labels: ['auto-update', 'trafficmonitor']
-            });
+      # Removed issue creation for Traffic Monitor
