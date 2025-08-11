@@ -4,27 +4,31 @@
   "homepage": "https://github.com/conda-forge/miniforge",
   "license": "BSD-3-Clause",
   "notes": [
-    "安装完成后，建议执行：conda init 来初始化当前 Shell 环境",
-    "本清单使用静默安装且不修改系统 PATH，Scoop 会通过 shim 与 bin 配置提供可执行文件"
+    "安装完成后，建议执行：conda init 来初始化当前 Shell 环境；如不希望自动激活 base，可执行：conda config --set auto_activate_base false",
+    "本清单为「仅暴露 conda、不暴露 python」的定制方案：bin 只导出 Miniforge3\\condabin\\conda.bat，不会创建 python.exe 的 shim，以避免覆盖系统（或 UV 管理的）Python",
+    "本清单不会修改系统 PATH，Scoop 通过 shim 提供可执行文件；安装路径为 ~\\scoop\\apps\\miniforge\\<version>\\Miniforge3",
+    "安装脚本在应用安装目录内清理旧的 Miniforge3 子目录（若存在）以避免『目标目录非空』导致的安装失败；不会清理用户自己的 conda 环境目录（如 %USERPROFILE%\\.conda\\envs）",
+    "若需要在命令行直接使用 Miniforge 的 python：可先 conda activate <env>，或使用 conda run -n <env> python；如需暴露 python.exe 的 shim，可在本清单的 bin 中加入 'Miniforge3\\\\python.exe' 后重新安装"
   ],
   "architecture": {
     "64bit": {
       "url": "https://github.com/conda-forge/miniforge/releases/download/25.3.1-0/Miniforge3-25.3.1-0-Windows-x86_64.exe",
-      "hash": "sha256:skip"
+      "hash": "b7706a307b005fc397b70a244de19129100906928abccd5592580eb8296fb240"
     }
   },
   "installer": {
     "script": [
       "Write-Host 'Installing Miniforge...' -ForegroundColor Green",
-      "$exe = Get-ChildItem \"$dir\\Miniforge3-Windows-*.exe\" | Select-Object -First 1",
+      "$exe = Get-ChildItem -Path $dir -Filter 'Miniforge3-*-Windows-*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1",
+      "if (-not $exe) { $exe = Get-ChildItem -Path $dir -Filter '*.exe' | Where-Object { $_.Name -like 'Miniforge*Windows*' } | Select-Object -First 1 }",
       "if (-not $exe) { Write-Host '✗ Installer not found' -ForegroundColor Red; exit 1 }",
-      "Start-Process -Wait -FilePath $exe.FullName -ArgumentList '/InstallationType=JustMe', '/AddToPath=0', '/RegisterPython=0', '/S', ('/D=' + $dir)"
+      "$installDir = Join-Path $dir 'Miniforge3'",
+      "if (Test-Path $installDir) { try { Remove-Item -Recurse -Force $installDir -ErrorAction Stop } catch { Write-Host 'Warn: failed to clean previous install dir, continuing...' -ForegroundColor DarkYellow } }",
+      "Start-Process -Wait -FilePath $exe.FullName -ArgumentList '/InstallationType=JustMe', '/AddToPath=0', '/RegisterPython=0', '/S', ('/D=' + $installDir)"
     ]
   },
   "bin": [
-    "python.exe",
-    "Scripts\\conda.exe",
-    "condabin\\conda.bat"
+    "Miniforge3\\condabin\\conda.bat"
   ],
   "checkver": {
     "github": "conda-forge/miniforge"
@@ -43,7 +47,7 @@
   "uninstaller": {
     "script": [
       "Write-Host 'Uninstalling Miniforge...' -ForegroundColor Yellow",
-      "$uninst = Get-ChildItem \"$dir\\Uninstall*Miniforge*.exe\" -ErrorAction SilentlyContinue | Select-Object -First 1",
+      "$uninst = Get-ChildItem -Path $dir -Recurse -Filter 'Uninstall*Miniforge*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1",
       "if ($uninst) { Start-Process -Wait -FilePath $uninst.FullName -ArgumentList '/S' } else { Write-Host 'Uninstaller not found, skipping.' -ForegroundColor DarkYellow }"
     ]
   }
