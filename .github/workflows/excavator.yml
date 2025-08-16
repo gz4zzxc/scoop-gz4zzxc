@@ -266,8 +266,76 @@ jobs:
                   f.write('updated=false\n')
           EOF
 
+    - name: Check for LobeChat updates
+    id: check-lobechat
+    run: |
+      python3 <<'EOF'
+      import json, os, re, requests, hashlib
+
+      MANIFEST = 'bucket/lobechat.json'
+      REPO = 'lobehub/lobe-chat'
+      api = f'https://api.github.com/repos/{REPO}/releases/latest'
+      headers = {'Accept':'application/vnd.github+json','User-Agent':'gh-actions'}
+      try:
+        if os.path.exists(MANIFEST):
+          with open(MANIFEST,'r',encoding='utf-8') as f:
+            manifest = json.load(f)
+        else:
+          manifest = {
+            'version':'0.0.0',
+            'description':'LobeChat desktop client',
+            'homepage':'https://github.com/lobehub/lobe-chat',
+            'license':'Apache-2.0'
+          }
+        current_version = manifest.get('version','0.0.0')
+        resp = requests.get(api, timeout=30, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        tag = data.get('tag_name','')
+        if not tag:
+          raise RuntimeError('No tag_name in latest release response')
+        version = tag.lstrip('vV')
+        pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$')
+        asset = next((a for a in data.get('assets', []) if pattern.match(a.get('name',''))), None)
+        if not asset:
+          raise RuntimeError('Setup asset not found')
+        url = asset.get('browser_download_url')
+        if not url:
+          raise RuntimeError('Asset missing download url')
+        dl = requests.get(url, timeout=600, stream=True, headers=headers)
+        dl.raise_for_status()
+        h = hashlib.sha256(); size=0
+        for chunk in dl.iter_content(262144):
+          if not chunk: continue
+          h.update(chunk); size += len(chunk)
+        sha256 = h.hexdigest()
+        updated = False
+        if manifest.get('version') != version:
+          manifest['version'] = version; updated = True
+        desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/LobeHub-Beta-{version}-setup.exe#dl.7z"
+        if manifest.get('url') != desired_url:
+          manifest['url'] = desired_url; updated = True
+        if manifest.get('hash','').lower() != sha256.lower():
+          manifest['hash'] = sha256; updated = True
+        if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
+          manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
+        if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}:
+          manifest['autoupdate'] = {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}; updated = True
+        if updated:
+          with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('updated=true\n'); f.write(f'old_version={current_version}\n'); f.write(f'new_version={version}\n')
+          print(f'Updated LobeChat {current_version} -> {version} (~{size/1024/1024:.2f} MB)')
+        else:
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+          print('LobeChat is up to date')
+      except Exception as e:
+        print('Error updating LobeChat:', e)
+        with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+      EOF
+
       - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true'
+        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true'
         run: |
           python3 << 'EOF'
           import re
@@ -287,6 +355,13 @@ jobs:
           if old_mf and new_mf:
               pattern = r'(\| miniforge \| .+ \| )' + re.escape(old_mf) + r'( \|)'
               replacement = r'\g<1>' + new_mf + r'\g<2>'
+              content = re.sub(pattern, replacement, content)
+
+          old_lc = "${{ steps.check-lobechat.outputs.old_version }}" or None
+          new_lc = "${{ steps.check-lobechat.outputs.new_version }}" or None
+          if old_lc and new_lc:
+              pattern = r'(\| lobechat \| .+ \| )' + re.escape(old_lc) + r'( \|)'
+              replacement = r'\g<1>' + new_lc + r'\g<2>'
               content = re.sub(pattern, replacement, content)
 
           with open('README.md', 'w', encoding='utf-8') as f:
@@ -316,6 +391,7 @@ jobs:
 
             - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
             - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
+            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
             - Run: ${{ github.run_id }}
           title: "🤖 Auto-update: bucket manifests"
           body: |
@@ -323,12 +399,14 @@ jobs:
 
             - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
             - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
+            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
             - Updated by workflow run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           labels: auto-update
           add-paths: |
             bucket/aliyundrive.json
             README.md
             bucket/miniforge.json
+            bucket/lobechat.json
 
       # Align with official buckets: do not create issues/releases for auto updates
 
