@@ -14,9 +14,13 @@ permissions:
 jobs:
   update-manifests:
     runs-on: ubuntu-latest
+    concurrency:
+      group: update-manifests-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -167,138 +171,254 @@ jobs:
           check_aliyundrive_update()
           EOF
 
+      - name: Check for Miniforge updates
+        id: check-miniforge
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import os
+          import requests
+
+          def latest_miniforge():
+              api = 'https://api.github.com/repos/conda-forge/miniforge/releases/latest'
+              r = requests.get(api, timeout=30, headers={'Accept':'application/vnd.github+json','User-Agent':'gh-actions'})
+              r.raise_for_status()
+              data = r.json()
+              tag = data.get('tag_name')
+              assets = data.get('assets', [])
+              exe_name = f'Miniforge3-{tag}-Windows-x86_64.exe'
+              sha_name = exe_name + '.sha256'
+              exe_url = None
+              sha_url = None
+              for a in assets:
+                  if a.get('name') == exe_name:
+                      exe_url = a.get('browser_download_url')
+                  if a.get('name') == sha_name:
+                      sha_url = a.get('browser_download_url')
+              if not exe_url or not sha_url:
+                  raise RuntimeError('Miniforge Windows x86_64 asset or sha256 not found')
+              sha_resp = requests.get(sha_url, timeout=30)
+              sha_resp.raise_for_status()
+              m = re.search(r'^([0-9a-fA-F]{64})', sha_resp.text)
+              if not m:
+                  raise RuntimeError('Unable to parse sha256')
+              sha = m.group(1).lower()
+              return tag, exe_url, sha
+
+          try:
+              manifest_path = 'bucket/miniforge.json'
+              with open(manifest_path, 'r', encoding='utf-8') as f:
+                  manifest = json.load(f)
+              current_version = manifest.get('version')
+
+              new_version, exe_url, sha = latest_miniforge()
+
+              desired_url = f'https://github.com/conda-forge/miniforge/releases/download/{new_version}/Miniforge3-{new_version}-Windows-x86_64.exe'
+              updated = False
+
+              if manifest.get('version') != new_version:
+                  updated = True
+                  manifest['version'] = new_version
+
+              arch = manifest.setdefault('architecture', {})
+              arch64 = arch.setdefault('64bit', {})
+              if arch64.get('url') != desired_url:
+                  updated = True
+                  arch64['url'] = desired_url
+              if arch64.get('hash', '').lower() != sha.lower():
+                  updated = True
+                  arch64['hash'] = sha
+              if 'arm64' in arch:
+                  updated = True
+                  arch.pop('arm64', None)
+
+              desired_autoupdate = {
+                  'architecture': {
+                      '64bit': {
+                          'url': 'https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe'
+                      }
+                  },
+                  'hash': {
+                      'url': 'https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe.sha256',
+                      'regex': '^([a-fA-F]{64})'
+                  }
+              }
+              if manifest.get('autoupdate') != desired_autoupdate:
+                  manifest['autoupdate'] = desired_autoupdate
+                  updated = True
+
+              if updated:
+                  with open(manifest_path, 'w', encoding='utf-8') as f:
+                      json.dump(manifest, f, indent=2, ensure_ascii=False)
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write('updated=true\n')
+                      f.write(f'old_version={current_version}\n')
+                      f.write(f'new_version={new_version}\n')
+                  print(f'Updated Miniforge from {current_version} to {new_version}')
+              else:
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write('updated=false\n')
+                  print('Miniforge is up to date')
+          except Exception as e:
+              print(f'Error checking Miniforge: {e}')
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('updated=false\n')
+          EOF
+
+    - name: Check for LobeChat updates
+    id: check-lobechat
+    run: |
+      python3 <<'EOF'
+      import json, os, re, requests, hashlib
+
+      MANIFEST = 'bucket/lobechat.json'
+      REPO = 'lobehub/lobe-chat'
+      api = f'https://api.github.com/repos/{REPO}/releases/latest'
+      headers = {'Accept':'application/vnd.github+json','User-Agent':'gh-actions'}
+      try:
+        if os.path.exists(MANIFEST):
+          with open(MANIFEST,'r',encoding='utf-8') as f:
+            manifest = json.load(f)
+        else:
+          manifest = {
+            'version':'0.0.0',
+            'description':'LobeChat desktop client',
+            'homepage':'https://github.com/lobehub/lobe-chat',
+            'license':'Apache-2.0'
+          }
+        current_version = manifest.get('version','0.0.0')
+        resp = requests.get(api, timeout=30, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        tag = data.get('tag_name','')
+        if not tag:
+          raise RuntimeError('No tag_name in latest release response')
+        version = tag.lstrip('vV')
+        pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$')
+        asset = next((a for a in data.get('assets', []) if pattern.match(a.get('name',''))), None)
+        if not asset:
+          raise RuntimeError('Setup asset not found')
+        url = asset.get('browser_download_url')
+        if not url:
+          raise RuntimeError('Asset missing download url')
+        dl = requests.get(url, timeout=600, stream=True, headers=headers)
+        dl.raise_for_status()
+        h = hashlib.sha256(); size=0
+        for chunk in dl.iter_content(262144):
+          if not chunk: continue
+          h.update(chunk); size += len(chunk)
+        sha256 = h.hexdigest()
+        updated = False
+        if manifest.get('version') != version:
+          manifest['version'] = version; updated = True
+        desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/LobeHub-Beta-{version}-setup.exe#dl.7z"
+        if manifest.get('url') != desired_url:
+          manifest['url'] = desired_url; updated = True
+        if manifest.get('hash','').lower() != sha256.lower():
+          manifest['hash'] = sha256; updated = True
+        if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
+          manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
+        if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}:
+          manifest['autoupdate'] = {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}; updated = True
+        if updated:
+          with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('updated=true\n'); f.write(f'old_version={current_version}\n'); f.write(f'new_version={version}\n')
+          print(f'Updated LobeChat {current_version} -> {version} (~{size/1024/1024:.2f} MB)')
+        else:
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+          print('LobeChat is up to date')
+      except Exception as e:
+        print('Error updating LobeChat:', e)
+        with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+      EOF
+
       - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true'
+        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true'
         run: |
           python3 << 'EOF'
           import re
 
-          # Read README
           with open('README.md', 'r', encoding='utf-8') as f:
               content = f.read()
 
-          # Update version in table
-          old_version = "${{ steps.check-updates.outputs.old_version }}"
-          new_version = "${{ steps.check-updates.outputs.new_version }}"
+          old_ad = "${{ steps.check-updates.outputs.old_version }}" or None
+          new_ad = "${{ steps.check-updates.outputs.new_version }}" or None
+          if old_ad and new_ad:
+              pattern = r'(\| aliyundrive \| .+ \| )' + re.escape(old_ad) + r'( \|)'
+              replacement = r'\g<1>' + new_ad + r'\g<2>'
+              content = re.sub(pattern, replacement, content)
 
-          # Replace version in the table
-          pattern = r'(\| aliyundrive \| .+ \| )' + re.escape(old_version) + r'( \|)'
-          replacement = r'\g<1>' + new_version + r'\g<2>'
-          content = re.sub(pattern, replacement, content)
+          old_mf = "${{ steps.check-miniforge.outputs.old_version }}" or None
+          new_mf = "${{ steps.check-miniforge.outputs.new_version }}" or None
+          if old_mf and new_mf:
+              pattern = r'(\| miniforge \| .+ \| )' + re.escape(old_mf) + r'( \|)'
+              replacement = r'\g<1>' + new_mf + r'\g<2>'
+              content = re.sub(pattern, replacement, content)
 
-          # Write updated README
+          old_lc = "${{ steps.check-lobechat.outputs.old_version }}" or None
+          new_lc = "${{ steps.check-lobechat.outputs.new_version }}" or None
+          if old_lc and new_lc:
+              pattern = r'(\| lobechat \| .+ \| )' + re.escape(old_lc) + r'( \|)'
+              replacement = r'\g<1>' + new_lc + r'\g<2>'
+              content = re.sub(pattern, replacement, content)
+
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
-
-          print(f"✅ Updated README version from {old_version} to {new_version}")
           EOF
 
-      - name: Commit and push changes
-        if: steps.check-updates.outputs.updated == 'true'
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: GitHub Actions Bot
-          author_email: actions@github.com
-          message: |
-            🤖 Auto-update AliyunDrive to v${{ steps.check-updates.outputs.new_version }}
+      - name: Check for manifest changes
+        id: check-changes-manifests
+        run: |
+          if git diff --quiet; then
+            echo "no-changes=true" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else:
+            echo "no-changes=false" >> $GITHUB_OUTPUT
+            git diff --name-only
+          fi
 
-            - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
-            - Auto-detected from https://www.aliyundrive.com/download
-            - Updated at: ${{ github.run_id }}
-          add: |
+      - name: Create Pull Request for manifest updates
+        if: steps.check-changes-manifests.outputs.no-changes == 'false'
+        id: cpr_aliyun
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: auto/manifests-${{ github.run_id }}
+          delete-branch: true
+          commit-message: |
+            chore(manifests): auto-update bucket manifests
+
+            - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
+            - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
+            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
+            - Run: ${{ github.run_id }}
+          title: "🤖 Auto-update: bucket manifests"
+          body: |
+            This PR updates one or more manifests automatically.
+
+            - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
+            - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
+            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
+            - Updated by workflow run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          labels: auto-update
+          add-paths: |
             bucket/aliyundrive.json
             README.md
+            bucket/miniforge.json
+            bucket/lobechat.json
 
-      - name: Create Issue for Update Notification
-        if: steps.check-updates.outputs.updated == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: 'auto-update,aliyundrive',
-              state: 'open'
-            });
+      # Align with official buckets: do not create issues/releases for auto updates
 
-            // Close existing auto-update issues
-            for (const issue of issues) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed'
-              });
-            }
-
-            // Create new issue
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🤖 AliyunDrive Auto-Updated to v${{ steps.check-updates.outputs.new_version }}`,
-              body: `## 🎉 AliyunDrive has been automatically updated!
-
-            **Version Change:**
-            - **From:** v${{ steps.check-updates.outputs.old_version }}
-            - **To:** v${{ steps.check-updates.outputs.new_version }}
-
-            **Download URL:**
-            \`https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe\`
-
-            **Installation:**
-            \`\`\`powershell
-            # Add bucket (if not already added)
-            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
-
-            # Install or update
-            scoop install gz4zzxc/aliyundrive
-            # or
-            scoop update aliyundrive
-            \`\`\`
-
-            **Files Updated:**
-            - \`bucket/aliyundrive.json\`
-            - \`README.md\`
-
-            **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            ---
-            *This issue was automatically created by GitHub Actions on ${new Date().toISOString()}*`,
-              labels: ['auto-update', 'aliyundrive', 'enhancement']
-            });
-
-      - name: Create release if major update
-        if: steps.check-updates.outputs.updated == 'true'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: aliyundrive-v${{ steps.check-updates.outputs.new_version }}
-          release_name: AliyunDrive v${{ steps.check-updates.outputs.new_version }}
-          body: |
-            🎉 AliyunDrive has been automatically updated!
-
-            **Changes:**
-            - Updated from v${{ steps.check-updates.outputs.old_version }} to v${{ steps.check-updates.outputs.new_version }}
-            - Download URL: https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-${{ steps.check-updates.outputs.new_version }}.exe
-
-            **Installation:**
-            ```powershell
-            scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
-            scoop install gz4zzxc/aliyundrive
-            ```
-
-            **Or update existing installation:**
-            ```powershell
-            scoop update aliyundrive
-            ```
-          draft: false
-          prerelease: false
+      # Removed release creation step
 
   # 新增：使用官方 Excavator 自动更新其他应用
   update-other-apps:
     runs-on: windows-latest
     needs: update-manifests
+    concurrency:
+      group: update-other-apps-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -351,8 +471,15 @@ jobs:
           $json.architecture.arm64.url    = $hashes['arm64'].url
           $json.architecture.arm64.hash   = $hashes['arm64'].sha
 
-          ($json | ConvertTo-Json -Depth 32) | Out-File $manifestPath -Encoding UTF8
-          Write-Host "Updated $manifestPath to $version"
+          # Prepare new JSON content and write only when content actually changes
+          $original = Get-Content $manifestPath -Raw
+          $newContent = ($json | ConvertTo-Json -Depth 32)
+          if ($newContent -ne $original) {
+            $newContent | Set-Content -Path $manifestPath -Encoding utf8NoBOM
+            Write-Host "Updated $manifestPath to $version"
+          } else {
+            Write-Host "No real changes in $manifestPath; skip writing"
+          }
 
       - name: Check for changes
         id: check-changes
@@ -367,27 +494,38 @@ jobs:
             git diff --name-only
           }
 
-      - name: Commit and push changes
+      - name: Create Pull Request for Traffic Monitor update
         if: steps.check-changes.outputs.no-changes == 'false'
-        uses: EndBug/add-and-commit@v9
+        id: cpr_tm
+        uses: peter-evans/create-pull-request@v6
         with:
-          author_name: GitHub Actions Bot
-          author_email: actions@github.com
-          message: |
-            🤖 Auto-update Traffic Monitor via GitHub API (Windows runner)
-          add: |
+          branch: auto/trafficmonitor-${{ steps.check-changes.id }}-${{ github.run_id }}
+          delete-branch: true
+          commit-message: |
+            chore(trafficmonitor): auto-update manifest to latest GitHub release
+          title: "🤖 Auto-update: Traffic Monitor"
+          body: |
+            This PR updates Traffic Monitor manifest to the latest GitHub release detected on the Windows runner.
+
+            Workflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          labels: auto-update, trafficmonitor
+          add-paths: |
             bucket/trafficmonitor.json
 
-      - name: Create summary issue
-        if: steps.check-changes.outputs.no-changes == 'false'
-        uses: actions/github-script@v7
+      # Removed issue creation for Traffic Monitor
+
+      - name: Enable auto-merge for Traffic Monitor PR
+        if: steps.cpr_tm.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
         with:
-          script: |
-            // 获取更新的应用列表
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🤖 Traffic Monitor Auto-Updated`,
-              body: `Updated Traffic Monitor manifest to latest GitHub release.\n\nFiles Updated:\n- bucket/trafficmonitor.json\n\nWorkflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`,
-              labels: ['auto-update', 'trafficmonitor']
-            });
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr_tm.outputs.pull-request-number }}
+          merge-method: squash
+
+      - name: Fallback merge Traffic Monitor PR (if auto-merge not available)
+        if: steps.cpr_tm.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --auto --squash --delete-branch || \
+          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --squash --delete-branch || true
