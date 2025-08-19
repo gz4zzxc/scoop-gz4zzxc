@@ -388,7 +388,7 @@ jobs:
               content = new_content
               # 如果不存在 lobechat 行，则插入一行（在表格头之后）
               if n == 0:
-                  table_header = r"\| App \| Description \| Version \|\n\|-----\|-------------\|---------\|"
+                  table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
                   insert_row = f"\n| lobechat | LobeChat 桌面客户端 | {new_lc} |"
                   content = re.sub(table_header, table_header + insert_row, content, count=1)
 

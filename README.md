@@ -21,8 +21,8 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 
 ## Available Apps
 
-\| App \| Description \| Version \|
-\|-----\|-------------\|---------\|
+| App | Description | Version |
+|-----|-------------|---------|
 | lobechat | LobeChat 桌面客户端 | 1.113.2 |
 | miniforge | Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器（仅暴露 conda，不暴露 python；安装到 Miniforge3 子目录） | 25.3.1-0 |
 | aliyundrive | 阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品 | 6.8.7 |
