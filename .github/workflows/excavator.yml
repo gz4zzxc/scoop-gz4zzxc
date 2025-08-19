@@ -295,11 +295,28 @@ jobs:
             if not tag:
               raise RuntimeError('No tag_name in latest release response')
             version = tag.lstrip('vV')
-            pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$')
-            asset = next((a for a in data.get('assets', []) if pattern.match(a.get('name',''))), None)
-            if not asset:
+            assets = data.get('assets', [])
+            # 1) 更宽松匹配：包含版本号且以 -setup.exe 结尾
+            pattern = re.compile(rf'^LobeHub-.*-{re.escape(version)}-setup\\.exe$', re.IGNORECASE)
+            asset = next((a for a in assets if pattern.match(a.get('name',''))), None)
+            url = asset.get('browser_download_url') if asset else None
+            # 2) 回退：解析 latest.yml，读取 path 字段
+            if not url:
+              latest_asset = next((a for a in assets if a.get('name') == 'latest.yml'), None)
+              if latest_asset and latest_asset.get('browser_download_url'):
+                yml_resp = requests.get(latest_asset['browser_download_url'], timeout=30, headers=headers)
+                yml_resp.raise_for_status()
+                m = re.search(r'^\s*path:\s*(\S+\.exe)\s*$', yml_resp.text, re.MULTILINE)
+                if m:
+                  exe_name = m.group(1).strip()
+                  # 优先从 assets 里再定位一次完整 URL；若未找到则直接拼接
+                  asset = next((a for a in assets if a.get('name') == exe_name), None)
+                  if asset:
+                    url = asset.get('browser_download_url')
+                  else:
+                    url = f"https://github.com/{REPO}/releases/download/{tag}/{exe_name}"
+            if not url:
               raise RuntimeError('Setup asset not found')
-            url = asset.get('browser_download_url')
             if not url:
               raise RuntimeError('Asset missing download url')
             dl = requests.get(url, timeout=600, stream=True, headers=headers)
@@ -312,7 +329,9 @@ jobs:
             updated = False
             if manifest.get('version') != version:
               manifest['version'] = version; updated = True
-            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/LobeHub-Beta-{version}-setup.exe#dl.7z"
+            # 用实际获取到的 exe 名称构造 autoupdate URL（保持 #dl.7z 以兼容 scoop 提取）
+            exe_name = url.rsplit('/', 1)[-1]
+            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}#dl.7z"
             if manifest.get('url') != desired_url:
               manifest['url'] = desired_url; updated = True
             if manifest.get('hash','').lower() != sha256.lower():
