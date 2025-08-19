@@ -397,13 +397,14 @@ jobs:
       - name: Check for manifest changes
         id: check-changes-manifests
         run: |
-          # 比较 HEAD 与工作区，能感知已写入但未暂存的更改
-          if git diff --quiet HEAD -- .; then
+          # 使用 git status 更可靠地检测更改，同时结合步骤输出兜底
+          CHANGED=$(git status --porcelain -- bucket/*.json README.md || true)
+          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
+            echo "no-changes=false" >> $GITHUB_OUTPUT
+            echo "Detected changes:" && printf "%s\n" "$CHANGED"
+          else
             echo "no-changes=true" >> $GITHUB_OUTPUT
             echo "No changes detected"
-          else:
-            echo "no-changes=false" >> $GITHUB_OUTPUT
-            git diff --name-only HEAD -- .
           fi
 
       - name: Create Pull Request for manifest updates
