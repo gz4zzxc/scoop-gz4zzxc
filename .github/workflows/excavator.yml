@@ -20,7 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -407,38 +408,35 @@ jobs:
             echo "No changes detected"
           fi
 
-      - name: Create Pull Request for manifest updates
+      - name: Commit and push changes directly
         if: steps.check-changes-manifests.outputs.no-changes == 'false'
-        id: cpr_aliyun
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: auto/manifests-${{ github.run_id }}
-          delete-branch: true
-          commit-message: |
-            chore(manifests): auto-update bucket manifests
-
-            - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
-            - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
-            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
-            - Run: ${{ github.run_id }}
-          title: "🤖 Auto-update: bucket manifests"
-          body: |
-            This PR updates one or more manifests automatically.
-
-            - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}
-            - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}
-            - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}
-            - Updated by workflow run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          labels: auto-update
-          add-paths: |
-            bucket/aliyundrive.json
-            README.md
-            bucket/miniforge.json
-            bucket/lobechat.json
-
-      # Align with official buckets: do not create issues/releases for auto updates
-
-      # Removed release creation step
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add all changed files
+          git add bucket/*.json README.md
+          
+          # Create commit message
+          COMMIT_MSG="chore(manifests): auto-update bucket manifests"
+          
+          if [ "${{ steps.check-updates.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}"
+          fi
+          
+          if [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}"
+          fi
+          
+          if [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}"
+          fi
+          
+          COMMIT_MSG="$COMMIT_MSG - Run: ${{ github.run_id }}"
+          
+          # Commit and push
+          git commit -m "$COMMIT_MSG"
+          git push origin main
 
   # 新增：使用官方 Excavator 自动更新其他应用
   update-other-apps:
@@ -450,6 +448,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Custom update trafficmonitor
         shell: pwsh
@@ -522,38 +522,12 @@ jobs:
             git diff --name-only
           }
 
-      - name: Create Pull Request for Traffic Monitor update
+      - name: Commit and push Traffic Monitor changes directly
         if: steps.check-changes.outputs.no-changes == 'false'
-        id: cpr_tm
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: auto/trafficmonitor-${{ steps.check-changes.id }}-${{ github.run_id }}
-          delete-branch: true
-          commit-message: |
-            chore(trafficmonitor): auto-update manifest to latest GitHub release
-          title: "🤖 Auto-update: Traffic Monitor"
-          body: |
-            This PR updates Traffic Monitor manifest to the latest GitHub release detected on the Windows runner.
-
-            Workflow Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          labels: auto-update, trafficmonitor
-          add-paths: |
-            bucket/trafficmonitor.json
-
-      # Removed issue creation for Traffic Monitor
-
-      - name: Enable auto-merge for Traffic Monitor PR
-        if: steps.cpr_tm.outputs.pull-request-number != ''
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr_tm.outputs.pull-request-number }}
-          merge-method: squash
-
-      - name: Fallback merge Traffic Monitor PR (if auto-merge not available)
-        if: steps.cpr_tm.outputs.pull-request-number != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --auto --squash --delete-branch || \
-          gh pr merge ${{ steps.cpr_tm.outputs.pull-request-number }} --squash --delete-branch || true
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add bucket/trafficmonitor.json
+          git commit -m "chore(trafficmonitor): auto-update manifest to latest GitHub release - Run: ${{ github.run_id }}"
+          git push origin main
