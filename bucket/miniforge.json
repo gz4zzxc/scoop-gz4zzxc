@@ -41,7 +41,7 @@
     },
     "hash": {
       "url": "https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe.sha256",
-      "regex": "^([a-fA-F0-9]{64})"
+      "regex": "^([a-fA-F]{64})"
     }
   },
   "uninstaller": {
@@ -52,5 +52,3 @@
     ]
   }
 }
-
-
