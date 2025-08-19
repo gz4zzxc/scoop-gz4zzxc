@@ -379,9 +379,16 @@ jobs:
           old_lc = "${{ steps.check-lobechat.outputs.old_version }}" or None
           new_lc = "${{ steps.check-lobechat.outputs.new_version }}" or None
           if old_lc and new_lc:
+              # 更新已存在行
               pattern = r'(\| lobechat \| .+ \| )' + re.escape(old_lc) + r'( \|)'
               replacement = r'\g<1>' + new_lc + r'\g<2>'
-              content = re.sub(pattern, replacement, content)
+              new_content, n = re.subn(pattern, replacement, content)
+              content = new_content
+              # 如果不存在 lobechat 行，则插入一行（在表格头之后）
+              if n == 0:
+                  table_header = r"\| App \| Description \| Version \|\n\|-----\|-------------\|---------\|"
+                  insert_row = f"\n| lobechat | LobeChat 桌面客户端 | {new_lc} |"
+                  content = re.sub(table_header, table_header + insert_row, content, count=1)
 
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
@@ -390,12 +397,13 @@ jobs:
       - name: Check for manifest changes
         id: check-changes-manifests
         run: |
-          if git diff --quiet; then
+          # 比较 HEAD 与工作区，能感知已写入但未暂存的更改
+          if git diff --quiet HEAD -- .; then
             echo "no-changes=true" >> $GITHUB_OUTPUT
             echo "No changes detected"
           else:
             echo "no-changes=false" >> $GITHUB_OUTPUT
-            git diff --name-only
+            git diff --name-only HEAD -- .
           fi
 
       - name: Create Pull Request for manifest updates
