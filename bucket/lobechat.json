@@ -2,7 +2,7 @@
   "version": "1.114.0",
   "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
   "homepage": "https://github.com/lobehub/lobe-chat",
-  "license": "Apache-2.0 (with additional commercial clause)",
+  "license": { "identifier": "Apache-2.0", "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE" },
   "notes": [
     "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
     "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
@@ -11,51 +11,17 @@
   "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.114.0/LobeHub-Beta-1.114.0-setup.exe",
   "hash": "88384eb289b6620557f6b3493979bc9d464ffe3e039dc25a46b566a989ab9b79",
   "installer": {
-    "script": [
-      "Write-Host '开始安装 LobeChat...' -ForegroundColor Cyan",
-      "# 查找安装文件",
-      "$exe = Get-ChildItem $dir -Filter '*.exe' | Where-Object { $_.Name -match 'LobeHub.*setup' } | Select-Object -First 1",
-      "if(-not $exe){",
-      "  Write-Host '未找到安装文件，尝试其他方式...' -ForegroundColor Yellow",
-      "  $exe = Get-ChildItem $dir -Filter '*.exe' | Select-Object -First 1",
-      "}",
-      "if(-not $exe){",
-      "  Write-Host '目录内容:' -ForegroundColor Yellow",
-      "  Get-ChildItem $dir | ForEach-Object { Write-Host $_.Name -ForegroundColor Gray }",
-      "  throw '未找到任何可执行文件'",
-      "}",
-      "Write-Host \"找到安装文件: $($exe.Name)\" -ForegroundColor Green",
-      "Write-Host '执行静默安装...' -ForegroundColor Cyan",
-      "try {",
-      "  $process = Start-Process -FilePath $exe.FullName -ArgumentList '/S' -Wait -PassThru",
-      "  if($process.ExitCode -eq 0) {",
-      "    Write-Host '安装完成' -ForegroundColor Green",
-      "  } else {",
-      "    Write-Host \"安装退出码: $($process.ExitCode)\" -ForegroundColor Yellow",
-      "  }",
-      "} catch {",
-      "  Write-Host \"安装过程中出现错误: $_\" -ForegroundColor Red",
-      "  throw",
-      "}"
-    ]
+    "args": ["/S"]
   },
-  "uninstaller": {
-    "script": [
-      "Write-Host '尝试静默卸载 LobeChat...' -ForegroundColor Cyan",
-      "$regPaths = 'HKCU:','HKLM:' | ForEach-Object { Join-Path $_ 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall' }",
-      "$entry = Get-ChildItem $regPaths -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -match 'LobeHub' -or $_.DisplayName -match 'LobeChat' } | Select-Object -First 1",
-      "if($entry -and $entry.UninstallString){",
-      "  $cmd = $entry.UninstallString",
-      "  if($cmd -match '^(\"[^\"]+\")'){ $path=$matches[1].Trim('\"') } else { $path = ($cmd -split ' ')[0] }",
-      "  if(Test-Path $path){ Start-Process -FilePath $path -ArgumentList '/S' -Wait; Write-Host '卸载完成' -ForegroundColor Green } else { Write-Host '未找到卸载程序: ' $path -ForegroundColor Yellow }",
-      "} else { Write-Host '未找到卸载信息 (可能已被移除)' -ForegroundColor Yellow }"
-    ]
-  },
+  
   "checkver": {
     "github": "lobehub/lobe-chat",
     "regex": "v([\\d.]+)"
   },
   "autoupdate": {
-    "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+    "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe",
+    "hash": {
+      "mode": "download"
+    }
   }
 }

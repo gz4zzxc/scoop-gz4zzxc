@@ -19,40 +19,21 @@
     "Write-Host '这是 Windows 系统安全机制，无法绕过' -ForegroundColor Cyan"
   ],
   "installer": {
-    "script": [
-      "$exe = Get-ChildItem $dir -Filter 'dida_win_setup_release_x64_*.exe' | Select-Object -First 1 | ForEach-Object { $_.FullName }",
-      "if(-not $exe){ throw '未找到安装文件 (*.exe)' }",
-      "Write-Host '开始静默安装 滴答清单...' -ForegroundColor Cyan",
-      "try {",
-      "  $process = Start-Process -FilePath $exe -ArgumentList '/S', '/SP-', '/NORESTART' -Wait -PassThru",
-      "  if ($process.ExitCode -eq 0) {",
-      "    Write-Host '✅ 安装成功！' -ForegroundColor Green",
-      "  } else {",
-      "    Write-Host '❌ 安装失败，退出代码: ' + $process.ExitCode -ForegroundColor Red",
-      "  }",
-      "} catch {",
-      "  Write-Host '❌ 安装过程出错: ' + $_.Exception.Message -ForegroundColor Red",
-      "  throw",
-      "}"
+    "args": [
+      "/S",
+      "/SP-",
+      "/NORESTART"
     ]
   },
-  "uninstaller": {
-    "script": [
-      "Write-Host '尝试静默卸载 滴答清单...' -ForegroundColor Cyan",
-      "$regPaths = 'HKCU:','HKLM:' | ForEach-Object { Join-Path $_ 'SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall' }",
-      "$entry = Get-ChildItem $regPaths -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -match '滴答清单' -or $_.DisplayName -match 'TickTick' } | Select-Object -First 1",
-      "if($entry -and $entry.UninstallString){",
-      "  $cmd = $entry.UninstallString",
-      "  if($cmd -match '^(\\\"[^\\\"]+\\\")'){ $path=$matches[1].Trim('\\\"') } else { $path = ($cmd -split ' ')[0] }",
-      "  if(Test-Path $path){ Start-Process -FilePath $path -ArgumentList '/S' -Wait; Write-Host '卸载完成' -ForegroundColor Green } else { Write-Host '未找到卸载程序: ' $path -ForegroundColor Yellow }",
-      "} else { Write-Host '未找到卸载信息 (可能已被移除)' -ForegroundColor Yellow }"
-    ]
-  },
+  
   "checkver": {
     "url": "https://dida365.com/download/windows/TickTick-Desktop-Setup.exe",
     "regex": "dida_win_setup_release_x64_([0-9]+)\\.exe"
   },
   "autoupdate": {
-    "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$version.exe"
+    "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$cleanVersion.exe",
+    "hash": {
+      "mode": "download"
+    }
   }
 }

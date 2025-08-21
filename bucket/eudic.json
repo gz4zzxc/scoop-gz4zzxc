@@ -75,6 +75,9 @@
         "regex": "最新软件版本：\\s*([\\d.]+)"
     },
     "autoupdate": {
-        "url": "https://static.frdic.com/pkg/eudic_win.zip"
+        "url": "https://static.frdic.com/pkg/eudic_win.zip",
+        "hash": {
+            "mode": "download"
+        }
     }
 }
