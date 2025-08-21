@@ -62,15 +62,10 @@ python3 -m json.tool bucket/appname.json
 - Silent installation with `/S` flag
 - Registry-based uninstall detection
 
-**Traffic Monitor**
-- Multi-architecture support (x64, x86, ARM64)
-- Standard version with hardware monitoring
-- Auto-updates via GitHub releases
 
 ### Auto-Update System
 The bucket uses a hybrid approach:
 - **Custom Python scripts** for AliyunDrive, Miniforge, and LobeChat (handles complex download logic)
-- **Official Excavator** integration for standard GitHub releases (Traffic Monitor)
 - **Daily schedule** at 8:00 AM Beijing Time
 - **PR-based updates** with auto-merge for simple manifests
 
@@ -84,7 +79,7 @@ Used for apps with complex download logic (AliyunDrive):
 Actual download happens in `pre_install` script.
 
 **Multi-Architecture Support**
-Traffic Monitor pattern with separate URLs/hashes per architecture:
+Example pattern with separate URLs/hashes per architecture:
 ```json
 "architecture": {
   "64bit": { "url": "...", "hash": "..." },
