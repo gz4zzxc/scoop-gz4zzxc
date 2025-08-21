@@ -23,11 +23,12 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 
 | App | Description | Version |
 |-----|-------------|---------|
-| lobechat | LobeChat 桌面客户端 | 1.113.2 |
+| lobechat | LobeChat 桌面客户端 | 1.114.0 |
 | miniforge | Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器（仅暴露 conda，不暴露 python；安装到 Miniforge3 子目录） | 25.3.1-0 |
 | aliyundrive | 阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品 | 6.8.7 |
 | eudic | 欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能 | 25.7.3 |
-| trafficmonitor | Traffic Monitor 是一款用于 Windows 的网速、CPU 与内存监控悬浮窗，支持嵌入任务栏与更换皮肤 | 1.85.1 |
+| trafficmonitor | Traffic Monitor 是一款用于 Windows 的网速、CPU 与 内存监控悬浮窗，支持嵌入任务栏与更换皮肤 | 1.85.1 |
+| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | 6.2.2.0 |
 
 ### Miniforge (conda-forge minimal installer)
 
@@ -90,6 +91,9 @@ scoop install gz4zzxc/eudic
 
 # Install Traffic Monitor
 scoop install gz4zzxc/trafficmonitor
+
+# Install 滴答清单
+scoop install gz4zzxc/dida365
 ```
 
 ### AliyunDrive Installation Notes
@@ -124,6 +128,29 @@ Traffic Monitor provides real-time network, CPU, and memory monitoring:
 - **Lite Version**: Available without temperature monitoring for non-admin users
 
 **Note**: If you encounter MSVC runtime library errors, please install Visual C++ Redistributable first.
+
+### Dida365 Installation Notes
+
+Dida365 (滴答清单) provides a comprehensive task and time management solution:
+
+- **Automatic Installation**: The manifest automatically downloads the latest installer from the official website
+- **Silent Installation**: Uses NSIS installer with `/S` parameter for unattended installation
+- **Registry-based Uninstallation**: Automatically detects uninstall information from registry
+- **Multi-platform Sync**: Supports cloud synchronization across devices for seamless task management
+- **Team Collaboration**: Includes features for team task assignment and collaboration
+- **Smart Reminders**: Provides intelligent notification and reminder system for tasks
+- **Cross-platform Support**: Windows, macOS, Android, and iOS apps available
+
+**Features**:
+- Task creation and management with priorities and due dates
+- Project and label organization
+- Calendar integration and scheduling
+- Comments and attachments support
+- Team collaboration and task sharing
+- Recurring tasks and reminders
+- Time tracking and productivity analytics
+
+The installation includes comprehensive progress feedback and error handling for a smooth setup experience.
 
 ## Auto-Update
 

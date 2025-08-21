@@ -22,3 +22,6 @@ Desktop.ini
 
 # Scoop specific
 checkver-*.txt
+
+# Test artifacts
+test-logs/

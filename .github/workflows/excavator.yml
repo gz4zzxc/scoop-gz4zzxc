@@ -331,17 +331,17 @@ jobs:
             updated = False
             if manifest.get('version') != version:
               manifest['version'] = version; updated = True
-            # 用实际获取到的 exe 名称构造 autoupdate URL（保持 #dl.7z 以兼容 scoop 提取）
+            # 用实际获取到的 exe 名称构造 autoupdate URL
             exe_name = url.rsplit('/', 1)[-1]
-            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}#dl.7z"
+            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}"
             if manifest.get('url') != desired_url:
               manifest['url'] = desired_url; updated = True
             if manifest.get('hash','').lower() != sha256.lower():
               manifest['hash'] = sha256; updated = True
             if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
               manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
-            if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}:
-              manifest['autoupdate'] = {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe#dl.7z'}; updated = True
+            if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe'}:
+              manifest['autoupdate'] = {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe'}; updated = True
             if updated:
               with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
               with open(os.environ['GITHUB_OUTPUT'],'a') as f:
@@ -355,8 +355,175 @@ jobs:
             with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
           EOF
 
+      - name: Check for Dida365 updates
+        id: check-dida365
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import requests
+          import hashlib
+          import os
+
+          def check_dida365_update():
+              try:
+                  # Read current version from manifest
+                  with open('bucket/dida365.json', 'r', encoding='utf-8') as f:
+                      manifest = json.load(f)
+                  current_version = manifest['version']
+                  current_hash = manifest.get('hash', '')
+
+                  print(f"Current Dida365 version: {current_version}")
+
+                  # Method 1: Try to fetch the download page to get latest version
+                  try:
+                      response = requests.get('https://dida365.com/download/windows', timeout=30, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                      })
+                      response.raise_for_status()
+                      
+                      # Extract version from download page
+                      version_match = re.search(r'dida_win_setup_release_x64_([0-9]+)\.exe', response.text)
+                      if version_match:
+                          version_number = version_match.group(1)
+                          # Convert version number to semantic version format
+                          if len(version_number) == 4:  # e.g., 6350 -> 6.3.5.0
+                              major = version_number[0]
+                              minor = version_number[1]
+                              patch = version_number[2]
+                              build = version_number[3]
+                              latest_version = f"{major}.{minor}.{patch}.{build}"
+                          else:
+                              latest_version = version_number
+                          print(f"Found version from download page: {latest_version}")
+                      else:
+                          raise Exception("Version not found in download page")
+
+                  except Exception as e:
+                      print(f"Method 1 failed: {e}")
+                      # Method 2: Check if current version download URL is still valid
+                      # Convert semantic version to version number for URL
+                      version_parts = current_version.split('.')
+                      if len(version_parts) == 4:
+                          version_number = ''.join(version_parts)
+                      else:
+                          version_number = current_version
+                      
+                      current_download_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version_number}.exe"
+                      print(f"Checking if current version download URL is still valid: {current_download_url}")
+                      try:
+                          head_response = requests.head(current_download_url, timeout=10, headers={
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                          })
+                          if head_response.status_code == 200:
+                              print("✅ Current version download URL is still valid")
+                              # Try to find a newer version by incrementing the version number
+                              current_version_num = int(version_number)
+                              latest_version = current_version
+                              
+                              # Try incrementing version number
+                              for i in range(1, 50):  # Try next 50 versions
+                                  test_version_num = str(current_version_num + i)
+                                  test_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{test_version_num}.exe"
+                                  print(f"Testing version {test_version_num}...")
+                                  test_response = requests.head(test_url, timeout=5, headers={
+                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                                  })
+                                  if test_response.status_code == 200:
+                                      # Convert back to semantic version
+                                      if len(test_version_num) == 4:
+                                          major = test_version_num[0]
+                                          minor = test_version_num[1]
+                                          patch = test_version_num[2]
+                                          build = test_version_num[3]
+                                          latest_version = f"{major}.{minor}.{patch}.{build}"
+                                      else:
+                                          latest_version = test_version_num
+                                      print(f"Found newer version: {latest_version}")
+                                      break
+                                  elif test_response.status_code == 404:
+                                      # If we get a 404, it's likely we've gone past the latest version
+                                      print(f"Version {test_version_num} not found (404), assuming latest version is {latest_version}")
+                                      break
+                                  # For other status codes, continue checking
+                          else:
+                              print(f"❌ Current download URL returned {head_response.status_code}")
+                              # If current version URL is not valid, we need to find the latest version
+                              latest_version = current_version
+                      except Exception as url_check_error:
+                          print(f"❌ Error checking current download URL: {url_check_error}")
+                          latest_version = current_version
+
+                  # Convert latest version to version number for URL construction
+                  if '.' in latest_version:
+                      version_parts = latest_version.split('.')
+                      if len(version_parts) == 4:
+                          version_number = ''.join(version_parts)
+                      else:
+                          version_number = latest_version
+                  else:
+                      version_number = latest_version
+
+                  # Construct download URL using the CDN pattern
+                  download_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version_number}.exe"
+                  print(f"Download URL: {download_url}")
+
+                  # Check if version has changed
+                  if latest_version != current_version:
+                      print(f"Version changed: {current_version} -> {latest_version}")
+                      
+                      # Download the file to calculate hash
+                      print("Downloading installer to calculate hash...")
+                      response = requests.get(download_url, timeout=600, stream=True, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                      })
+                      response.raise_for_status()
+
+                      # Calculate SHA256 hash
+                      sha256_hash = hashlib.sha256()
+                      for chunk in response.iter_content(chunk_size=8192):
+                          sha256_hash.update(chunk)
+                      file_hash = sha256_hash.hexdigest()
+                      print(f"Calculated SHA256: {file_hash}")
+
+                      # Update manifest
+                      manifest['version'] = latest_version
+                      manifest['hash'] = file_hash
+                      manifest['url'] = download_url + "#dl.7z"
+
+                      # Update autoupdate configuration
+                      if 'autoupdate' in manifest:
+                          manifest['autoupdate']['url'] = download_url + "#dl.7z"
+
+                      # Write updated manifest
+                      with open('bucket/dida365.json', 'w', encoding='utf-8') as f:
+                          json.dump(manifest, f, indent=4, ensure_ascii=False)
+
+                      # Set output for GitHub Actions
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write(f"updated=true\n")
+                          f.write(f"old_version={current_version}\n")
+                          f.write(f"new_version={latest_version}\n")
+
+                      print(f"✅ Updated Dida365 from {current_version} to {latest_version}")
+                      return True
+                  else:
+                      print("✅ Dida365 is up to date")
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write(f"updated=false\n")
+                      return False
+
+              except Exception as e:
+                  print(f"❌ Error checking Dida365 updates: {e}")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"updated=false\n")
+                  return False
+
+          check_dida365_update()
+          EOF
+
       - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true'
+        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
         run: |
           python3 << 'EOF'
           import re
@@ -392,6 +559,20 @@ jobs:
                   insert_row = f"\n| lobechat | LobeChat 桌面客户端 | {new_lc} |"
                   content = re.sub(table_header, table_header + insert_row, content, count=1)
 
+          old_dd = "${{ steps.check-dida365.outputs.old_version }}" or None
+          new_dd = "${{ steps.check-dida365.outputs.new_version }}" or None
+          if old_dd and new_dd:
+              # 更新已存在行
+              pattern = r'(\| dida365 \| .+ \| )' + re.escape(old_dd) + r'( \|)'
+              replacement = r'\g<1>' + new_dd + r'\g<2>'
+              new_content, n = re.subn(pattern, replacement, content)
+              content = new_content
+              # 如果不存在 dida365 行，则插入一行（在表格头之后）
+              if n == 0:
+                  table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
+                  insert_row = f"\n| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | {new_dd} |"
+                  content = re.sub(table_header, table_header + insert_row, content, count=1)
+
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
           EOF
@@ -401,7 +582,7 @@ jobs:
         run: |
           # 使用 git status 更可靠地检测更改，同时结合步骤输出兜底
           CHANGED=$(git status --porcelain -- bucket/*.json README.md || true)
-          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
+          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
             echo "no-changes=false" >> $GITHUB_OUTPUT
             echo "Detected changes:" && printf "%s\n" "$CHANGED"
           else
@@ -431,6 +612,10 @@ jobs:
           
           if [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
             COMMIT_MSG="$COMMIT_MSG - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}"
+          fi
+          
+          if [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - Dida365: ${{ steps.check-dida365.outputs.old_version }} -> ${{ steps.check-dida365.outputs.new_version }}"
           fi
           
           COMMIT_MSG="$COMMIT_MSG - Run: ${{ github.run_id }}"
