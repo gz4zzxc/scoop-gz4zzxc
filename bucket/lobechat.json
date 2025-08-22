@@ -1,27 +1,28 @@
 {
-  "version": "1.114.0",
+  "version": "1.114.3",
   "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
   "homepage": "https://github.com/lobehub/lobe-chat",
-  "license": { "identifier": "Apache-2.0", "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE" },
+  "license": {
+    "identifier": "Apache-2.0",
+    "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE"
+  },
   "notes": [
     "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
     "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
     "更新时如有进程占用，请先退出托盘后再执行 scoop update lobechat"
   ],
-  "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.114.0/LobeHub-Beta-1.114.0-setup.exe",
-  "hash": "88384eb289b6620557f6b3493979bc9d464ffe3e039dc25a46b566a989ab9b79",
+  "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.114.3/LobeHub-Beta-1.114.3-setup.exe",
+  "hash": "c788ea2bec4ba2484b491357f068b689668aeb797615299cc1f8bcaf8923ede6",
   "installer": {
-    "args": ["/S"]
+    "args": [
+      "/S"
+    ]
   },
-  
   "checkver": {
     "github": "lobehub/lobe-chat",
     "regex": "v([\\d.]+)"
   },
   "autoupdate": {
-    "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe",
-    "hash": {
-      "mode": "download"
-    }
+    "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
   }
 }
