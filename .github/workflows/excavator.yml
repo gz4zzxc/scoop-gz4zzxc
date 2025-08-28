@@ -137,14 +137,40 @@ jobs:
                               f.write(f"updated=false\n")
                           return False
 
-                      # Update manifest - keep the placeholder URL structure but update version
-                      manifest['version'] = latest_version
-                      # Keep the placeholder URL structure unchanged - it uses placeholder.txt
-                      # The pre_install script already uses $version variable, so it will automatically use the new version
+                      # Download the file to calculate hash
+                      print("Downloading installer to calculate hash...")
+                      response = requests.get(download_url, timeout=600, stream=True, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                      })
+                      response.raise_for_status()
 
-                      # Update autoupdate URL
+                      # Calculate SHA256 hash
+                      import hashlib
+                      sha256_hash = hashlib.sha256()
+                      for chunk in response.iter_content(chunk_size=8192):
+                          sha256_hash.update(chunk)
+                      file_hash = sha256_hash.hexdigest()
+                      print(f"Calculated SHA256: {file_hash}")
+
+                      # Update manifest with new architecture structure
+                      manifest['version'] = latest_version
+                      
+                      # Update architecture.64bit configuration
+                      if 'architecture' not in manifest:
+                          manifest['architecture'] = {}
+                      if '64bit' not in manifest['architecture']:
+                          manifest['architecture']['64bit'] = {}
+                      
+                      manifest['architecture']['64bit']['url'] = download_url
+                      manifest['architecture']['64bit']['hash'] = file_hash
+
+                      # Update autoupdate configuration
                       if 'autoupdate' in manifest:
-                          manifest['autoupdate']['url'] = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
+                          if 'architecture' not in manifest['autoupdate']:
+                              manifest['autoupdate']['architecture'] = {}
+                          if '64bit' not in manifest['autoupdate']['architecture']:
+                              manifest['autoupdate']['architecture']['64bit'] = {}
+                          manifest['autoupdate']['architecture']['64bit']['url'] = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
 
                       # Write updated manifest
                       with open('bucket/aliyundrive.json', 'w', encoding='utf-8') as f:
@@ -342,19 +368,38 @@ jobs:
             if manifest.get('version') != version:
               manifest['version'] = version; updated = True
               print(f"Version changed: {current_version} -> {version}")
-            # 用实际获取到的 exe 名称构造 autoupdate URL
+            
+            # Update architecture.64bit configuration instead of root level
+            if 'architecture' not in manifest:
+              manifest['architecture'] = {}
+            if '64bit' not in manifest['architecture']:
+              manifest['architecture']['64bit'] = {}
+            
+            # 用实际获取到的 exe 名称构造 URL
             exe_name = url.rsplit('/', 1)[-1]
             desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}"
-            if manifest.get('url') != desired_url:
-              manifest['url'] = desired_url; updated = True
-              print(f"URL changed: {manifest.get('url')} -> {desired_url}")
-            if manifest.get('hash','').lower() != sha256.lower():
-              manifest['hash'] = sha256; updated = True
-              print(f"Hash changed: {manifest.get('hash')} -> {sha256}")
+            
+            if manifest['architecture']['64bit'].get('url') != desired_url:
+              manifest['architecture']['64bit']['url'] = desired_url; updated = True
+              print(f"URL changed: {manifest['architecture']['64bit'].get('url')} -> {desired_url}")
+            if manifest['architecture']['64bit'].get('hash','').lower() != sha256.lower():
+              manifest['architecture']['64bit']['hash'] = sha256; updated = True
+              print(f"Hash changed: {manifest['architecture']['64bit'].get('hash')} -> {sha256}")
+            
             if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
               manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
-            if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe'}:
-              manifest['autoupdate'] = {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe'}; updated = True
+            
+            # Update autoupdate configuration with architecture structure
+            desired_autoupdate = {
+              'architecture': {
+                '64bit': {
+                  'url': f'https://github.com/lobehub/lobe-chat/releases/download/v$version/{exe_name}'
+                }
+              }
+            }
+            if manifest.get('autoupdate') != desired_autoupdate:
+              manifest['autoupdate'] = desired_autoupdate; updated = True
+            
             if updated:
               with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
               with open(os.environ['GITHUB_OUTPUT'],'a') as f:
@@ -501,14 +546,25 @@ jobs:
                       file_hash = sha256_hash.hexdigest()
                       print(f"Calculated SHA256: {file_hash}")
 
-                      # Update manifest
+                      # Update manifest with new architecture structure
                       manifest['version'] = latest_version
-                      manifest['hash'] = file_hash
-                      manifest['url'] = download_url + "#dl.7z"
+                      
+                      # Update architecture.64bit configuration
+                      if 'architecture' not in manifest:
+                          manifest['architecture'] = {}
+                      if '64bit' not in manifest['architecture']:
+                          manifest['architecture']['64bit'] = {}
+                      
+                      manifest['architecture']['64bit']['url'] = download_url + "#dl.7z"
+                      manifest['architecture']['64bit']['hash'] = file_hash
 
                       # Update autoupdate configuration
                       if 'autoupdate' in manifest:
-                          manifest['autoupdate']['url'] = download_url + "#dl.7z"
+                          if 'architecture' not in manifest['autoupdate']:
+                              manifest['autoupdate']['architecture'] = {}
+                          if '64bit' not in manifest['autoupdate']['architecture']:
+                              manifest['autoupdate']['architecture']['64bit'] = {}
+                          manifest['autoupdate']['architecture']['64bit']['url'] = download_url + "#dl.7z"
 
                       # Write updated manifest
                       with open('bucket/dida365.json', 'w', encoding='utf-8') as f:
