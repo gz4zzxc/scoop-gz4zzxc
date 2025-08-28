@@ -11,8 +11,12 @@
         "多平台同步，支持学习记录云端同步",
         "安装后可在开始菜单或桌面找到欧路词典图标"
     ],
-    "url": "https://static.frdic.com/pkg/eudic_win.zip",
-    "hash": "cbb10fdd5b5d2d80450055056148ea5bed60d0156fda44a137ed0c172bfbdc35",
+    "architecture": {
+        "64bit": {
+            "url": "https://static.frdic.com/pkg/eudic_win.zip",
+            "hash": "cbb10fdd5b5d2d80450055056148ea5bed60d0156fda44a137ed0c172bfbdc35"
+        }
+    },
     "pre_install": [
         "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow"
     ],
@@ -75,7 +79,11 @@
         "regex": "最新软件版本：\\s*([\\d.]+)"
     },
     "autoupdate": {
-        "url": "https://static.frdic.com/pkg/eudic_win.zip",
+        "architecture": {
+            "64bit": {
+                "url": "https://static.frdic.com/pkg/eudic_win.zip"
+            }
+        },
         "hash": {
             "mode": "download"
         }

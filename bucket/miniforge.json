@@ -30,6 +30,7 @@
   "bin": [
     "Miniforge3\\condabin\\conda.bat"
   ],
+  "shortcuts": [["Miniforge3\\condabin\\conda.bat", "Conda (Miniforge)"]],
   "checkver": {
     "github": "conda-forge/miniforge"
   },

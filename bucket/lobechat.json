@@ -11,18 +11,28 @@
     "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
     "更新时如有进程占用，请先退出托盘后再执行 scoop update lobechat"
   ],
-  "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.116.1/LobeHub-Beta-1.116.1-setup.exe",
-  "hash": "b276314f35556e1faf350daa344f493d2908e0f8676221ea4462ae5b85ae4a62",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.116.1/LobeHub-Beta-1.116.1-setup.exe",
+      "hash": "b276314f35556e1faf350daa344f493d2908e0f8676221ea4462ae5b85ae4a62"
+    }
+  },
   "installer": {
     "args": [
       "/S"
     ]
   },
+  "bin": "LobeChat.exe",
+  "shortcuts": [["LobeChat.exe", "LobeChat"]],
   "checkver": {
     "github": "lobehub/lobe-chat",
     "regex": "v([\\d.]+)"
   },
   "autoupdate": {
-    "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+      }
+    }
   }
 }

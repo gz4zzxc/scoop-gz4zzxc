@@ -9,8 +9,12 @@
         "安装后可在开始菜单或桌面找到阿里云盘图标",
         "首次使用需要登录阿里云账号"
     ],
-    "url": "https://raw.githubusercontent.com/gz4zzxc/scoop-gz4zzxc/main/placeholder.txt#/aDrive-6.8.7.exe",
-    "hash": "df33e7705059e9276a6652a492a980edf6fe174edd8c4f5c1641f1ab9abec643",
+    "architecture": {
+        "64bit": {
+            "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-6.8.7.exe",
+            "hash": "df33e7705059e9276a6652a492a980edf6fe174edd8c4f5c1641f1ab9abec643"
+        }
+    },
     "pre_install": [
         "# 使用自定义 UA 下载并解包，解决 CDN 对默认 UA 的限制",
         "$downloadUrl = \"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe\"",
@@ -29,13 +33,16 @@
         "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",
         "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow"
     ],
-    
     "checkver": {
         "url": "https://www.aliyundrive.com/download",
         "regex": "aDrive-([\\d.]+)\\.exe"
     },
     "autoupdate": {
-        "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe",
+        "architecture": {
+            "64bit": {
+                "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
+            }
+        },
         "hash": {
             "mode": "download"
         }

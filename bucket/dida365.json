@@ -11,8 +11,12 @@
     "更新时如有进程占用，请先退出托盘后再执行 scoop update dida365",
     "如需完全静默安装，请以管理员身份运行 PowerShell 后再执行 scoop install"
   ],
-  "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6350.exe",
-  "hash": "46a57e5c04a954e77796d0e2d78b6f8eece7c5f57e27f715987dda96af9561a8",
+  "architecture": {
+    "64bit": {
+      "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6350.exe",
+      "hash": "46a57e5c04a954e77796d0e2d78b6f8eece7c5f57e27f715987dda96af9561a8"
+    }
+  },
   "pre_install": [
     "Write-Host '⚠️  滴答清单需要管理员权限进行安装' -ForegroundColor Yellow",
     "Write-Host '如果弹出 UAC 权限对话框，请点击「是」继续安装' -ForegroundColor Yellow",
@@ -25,13 +29,18 @@
       "/NORESTART"
     ]
   },
-  
+  "bin": "TickTick.exe",
+  "shortcuts": [["TickTick.exe", "滴答清单"]],
   "checkver": {
     "url": "https://dida365.com/download/windows/TickTick-Desktop-Setup.exe",
     "regex": "dida_win_setup_release_x64_([0-9]+)\\.exe"
   },
   "autoupdate": {
-    "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$cleanVersion.exe",
+    "architecture": {
+      "64bit": {
+        "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$cleanVersion.exe"
+      }
+    },
     "hash": {
       "mode": "download"
     }
