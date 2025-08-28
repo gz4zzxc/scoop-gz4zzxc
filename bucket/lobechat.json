@@ -23,7 +23,12 @@
     ]
   },
   "bin": "LobeChat.exe",
-  "shortcuts": [["LobeChat.exe", "LobeChat"]],
+  "shortcuts": [
+    [
+      "LobeChat.exe",
+      "LobeChat"
+    ]
+  ],
   "checkver": {
     "github": "lobehub/lobe-chat",
     "regex": "v([\\d.]+)"
@@ -31,7 +36,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-1.116.1-setup.exe"
       }
     }
   }
