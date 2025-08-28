@@ -298,29 +298,39 @@ jobs:
               raise RuntimeError('No tag_name in latest release response')
             version = tag.lstrip('vV')
             assets = data.get('assets', [])
-            # 1) 更宽松匹配：包含版本号且以 -setup.exe 结尾
-            pattern = re.compile(rf'^LobeHub-.*-{re.escape(version)}-setup\\.exe$', re.IGNORECASE)
+            # 1) 精确匹配：LobeHub-Beta-{version}-setup.exe
+            pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$', re.IGNORECASE)
             asset = next((a for a in assets if pattern.match(a.get('name',''))), None)
             url = asset.get('browser_download_url') if asset else None
             # 2) 回退：解析 latest.yml，读取 path 字段
             if not url:
-              latest_asset = next((a for a in assets if a.get('name') == 'latest.yml'), None)
-              if latest_asset and latest_asset.get('browser_download_url'):
-                yml_resp = requests.get(latest_asset['browser_download_url'], timeout=30, headers=headers)
+              print(f"Asset not found with pattern, trying latest.yml...")
+              try:
+                yml_url = f"https://github.com/{REPO}/releases/download/{tag}/latest.yml"
+                yml_resp = requests.get(yml_url, timeout=30, headers=headers)
                 yml_resp.raise_for_status()
-                m = re.search(r'^\s*path:\s*(\S+\.exe)\s*$', yml_resp.text, re.MULTILINE)
-                if m:
-                  exe_name = m.group(1).strip()
-                  # 优先从 assets 里再定位一次完整 URL；若未找到则直接拼接
+                yml_content = yml_resp.text
+                print(f"latest.yml content:\n{yml_content}")
+
+                # 解析 YAML 中的 path 字段
+                path_match = re.search(r'^\s*path:\s*(\S+\.exe)\s*$', yml_content, re.MULTILINE)
+                if path_match:
+                  exe_name = path_match.group(1).strip()
+                  print(f"Found exe name from latest.yml: {exe_name}")
+                  # 从 assets 里定位完整 URL
                   asset = next((a for a in assets if a.get('name') == exe_name), None)
                   if asset:
                     url = asset.get('browser_download_url')
+                    print(f"Found asset URL: {url}")
                   else:
                     url = f"https://github.com/{REPO}/releases/download/{tag}/{exe_name}"
+                    print(f"Constructed URL: {url}")
+              except Exception as yml_error:
+                print(f"Failed to parse latest.yml: {yml_error}")
             if not url:
-              raise RuntimeError('Setup asset not found')
-            if not url:
-              raise RuntimeError('Asset missing download url')
+              raise RuntimeError(f'Setup asset not found for version {version}')
+
+            print(f"Using URL: {url}")
             dl = requests.get(url, timeout=600, stream=True, headers=headers)
             dl.raise_for_status()
             h = hashlib.sha256(); size=0
@@ -331,13 +341,16 @@ jobs:
             updated = False
             if manifest.get('version') != version:
               manifest['version'] = version; updated = True
+              print(f"Version changed: {current_version} -> {version}")
             # 用实际获取到的 exe 名称构造 autoupdate URL
             exe_name = url.rsplit('/', 1)[-1]
             desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}"
             if manifest.get('url') != desired_url:
               manifest['url'] = desired_url; updated = True
+              print(f"URL changed: {manifest.get('url')} -> {desired_url}")
             if manifest.get('hash','').lower() != sha256.lower():
               manifest['hash'] = sha256; updated = True
+              print(f"Hash changed: {manifest.get('hash')} -> {sha256}")
             if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
               manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
             if manifest.get('autoupdate') != {'url':'https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe'}:
@@ -351,7 +364,9 @@ jobs:
               with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
               print('LobeChat is up to date')
           except Exception as e:
-            print('Error updating LobeChat:', e)
+            print(f'❌ Error updating LobeChat: {e}')
+            import traceback
+            traceback.print_exc()
             with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
           EOF
 
