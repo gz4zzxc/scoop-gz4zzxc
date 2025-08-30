@@ -1,4 +1,6 @@
-# scoop-gz4zzxc
+| App | Description | Version |
+|-----|-------------|---------|
+| lobechat | LobeChat 桌面客户端 | 1.118.8 |# scoop-gz4zzxc
 
 [![Excavator](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml/badge.svg)](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml)
 
