@@ -435,84 +435,124 @@ jobs:
 
                   print(f"Current Dida365 version: {current_version}")
 
-                  # Method 1: Try to fetch the download page to get latest version
+                  # Method 1: Try to fetch the Windows download page to get latest version
                   try:
-                      response = requests.get('https://dida365.com/download/windows', timeout=30, headers={
+                      response = requests.get('https://dida365.com/windows', timeout=30, headers={
                           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                       })
                       response.raise_for_status()
+                      print("✅ Successfully accessed Windows download page")
                       
-                      # Extract version from download page
-                      version_match = re.search(r'dida_win_setup_release_x64_([0-9]+)\.exe', response.text)
-                      if version_match:
-                          version_number = version_match.group(1)
-                          # Convert version number to semantic version format
-                          if len(version_number) == 4:  # e.g., 6350 -> 6.3.5.0
-                              major = version_number[0]
-                              minor = version_number[1]
-                              patch = version_number[2]
-                              build = version_number[3]
-                              latest_version = f"{major}.{minor}.{patch}.{build}"
-                          else:
-                              latest_version = version_number
-                          print(f"Found version from download page: {latest_version}")
-                      else:
-                          raise Exception("Version not found in download page")
-
+                      # 从页面中提取下载链接
+                      download_links = re.findall(r'href="([^"]*getApp/download[^"]*)"', response.text)
+                      print(f"Found download links: {download_links}")
+                      
+                      if download_links:
+                          # 尝试访问 64 位版本的下载链接
+                          for link in download_links:
+                              if 'win64' in link:
+                                  if link.startswith('/'):
+                                      full_url = f"https://dida365.com{link}"
+                                  else:
+                                      full_url = link
+                                  
+                                  print(f"Trying to access download link: {full_url}")
+                                  try:
+                                      download_response = requests.get(full_url, timeout=30, headers={
+                                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                                      }, allow_redirects=True)
+                                      
+                                      print(f"Download response status: {download_response.status_code}")
+                                      print(f"Final URL: {download_response.url}")
+                                      
+                                      # 从重定向的 URL 中提取版本号
+                                      if download_response.status_code == 200:
+                                          final_url = download_response.url
+                                          # 提取版本号：dida_win_setup_release_x64_6350.exe -> 6350
+                                          version_match = re.search(r'dida_win_setup_release_x64_([0-9]+)\.exe', final_url)
+                                          if version_match:
+                                              version_number = version_match.group(1)
+                                              print(f"✅ Found version number from final URL: {version_number}")
+                                              
+                                              # 转换为语义版本格式
+                                              if len(version_number) == 4:  # e.g., 6350 -> 6.3.5.0
+                                                  major = version_number[0]
+                                                  minor = version_number[1]
+                                                  patch = version_number[2]
+                                                  build = version_number[3]
+                                                  latest_version = f"{major}.{minor}.{patch}.{build}"
+                                              else:
+                                                  latest_version = version_number
+                                              
+                                              print(f"✅ Converted to semantic version: {latest_version}")
+                                              break
+                                          else:
+                                              print("❌ Could not extract version number from final URL")
+                                      else:
+                                          print(f"Download request failed with status: {download_response.status_code}")
+                                          
+                                  except Exception as download_error:
+                                      print(f"Error accessing download link: {download_error}")
+                      
+                      if not latest_version:
+                          print("❌ No version found from download links, trying alternative methods")
+                          
                   except Exception as e:
-                      print(f"Method 1 failed: {e}")
-                      # Method 2: Check if current version download URL is still valid
-                      # Convert semantic version to version number for URL
-                      version_parts = current_version.split('.')
-                      if len(version_parts) == 4:
-                          version_number = ''.join(version_parts)
-                      else:
-                          version_number = current_version
+                      print(f"❌ Method 1 failed: {e}")
                       
-                      current_download_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version_number}.exe"
-                      print(f"Checking if current version download URL is still valid: {current_download_url}")
+                      # Method 2: Try main download page as fallback
                       try:
-                          head_response = requests.head(current_download_url, timeout=10, headers={
+                          response = requests.get('https://dida365.com/download', timeout=30, headers={
                               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                           })
-                          if head_response.status_code == 200:
-                              print("✅ Current version download URL is still valid")
-                              # Try to find a newer version by incrementing the version number
-                              current_version_num = int(version_number)
-                              latest_version = current_version
+                          response.raise_for_status()
+                          print("✅ Successfully accessed main download page")
+                          
+                          # 从主下载页面查找版本信息
+                          version_patterns = [
+                              r'dida_win_setup_release_x64_([0-9]+)\.exe',
+                              r'version["\']?\s*:\s*["\']?([0-9.]+)["\']?',
+                              r'v([0-9.]+)',
+                              r'([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2})'
+                          ]
+                          
+                          latest_version = None
+                          for i, pattern in enumerate(version_patterns):
+                              matches = re.findall(pattern, response.text)
+                              if matches:
+                                  latest_version = matches[0]
+                                  print(f"✅ Found version from main download page using pattern {i+1}: {latest_version}")
+                                  break
+                                  
+                      except Exception as main_error:
+                          print(f"Main download page access failed: {main_error}")
+                          
+                          # Method 3: Try beta download page as last resort
+                          try:
+                              response = requests.get('https://beta.dida365.com/windows?language=zh_CN', timeout=30, headers={
+                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                              })
+                              response.raise_for_status()
+                              print("✅ Successfully accessed beta download page")
                               
-                              # Try incrementing version number
-                              for i in range(1, 50):  # Try next 50 versions
-                                  test_version_num = str(current_version_num + i)
-                                  test_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{test_version_num}.exe"
-                                  print(f"Testing version {test_version_num}...")
-                                  test_response = requests.head(test_url, timeout=5, headers={
-                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                                  })
-                                  if test_response.status_code == 200:
-                                      # Convert back to semantic version
-                                      if len(test_version_num) == 4:
-                                          major = test_version_num[0]
-                                          minor = test_version_num[1]
-                                          patch = test_version_num[2]
-                                          build = test_version_num[3]
-                                          latest_version = f"{major}.{minor}.{patch}.{build}"
-                                      else:
-                                          latest_version = test_version_num
-                                      print(f"Found newer version: {latest_version}")
+                              # 从 Beta 页面查找版本信息
+                              version_patterns = [
+                                  r'dida_win_setup_release_x64_([0-9]+)\.exe',
+                                  r'version["\']?\s*:\s*["\']?([0-9.]+)["\']?',
+                                  r'v([0-9.]+)',
+                                  r'([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2})'
+                              ]
+                              
+                              latest_version = None
+                              for i, pattern in enumerate(version_patterns):
+                                  matches = re.findall(pattern, response.text)
+                                  if matches:
+                                      latest_version = matches[0]
+                                      print(f"✅ Found version from beta page using pattern {i+1}: {latest_version}")
                                       break
-                                  elif test_response.status_code == 404:
-                                      # If we get a 404, it's likely we've gone past the latest version
-                                      print(f"Version {test_version_num} not found (404), assuming latest version is {latest_version}")
-                                      break
-                                  # For other status codes, continue checking
-                          else:
-                              print(f"❌ Current download URL returned {head_response.status_code}")
-                              # If current version URL is not valid, we need to find the latest version
-                              latest_version = current_version
-                      except Exception as url_check_error:
-                          print(f"❌ Error checking current download URL: {url_check_error}")
-                          latest_version = current_version
+                                      
+                          except Exception as beta_error:
+                              print(f"Beta page access failed: {beta_error}")
 
                   # Convert latest version to version number for URL construction
                   if '.' in latest_version:

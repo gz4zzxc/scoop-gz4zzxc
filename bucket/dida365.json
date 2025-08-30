@@ -32,7 +32,7 @@
   "bin": "TickTick.exe",
   "shortcuts": [["TickTick.exe", "滴答清单"]],
   "checkver": {
-    "url": "https://dida365.com/download/windows/TickTick-Desktop-Setup.exe",
+    "url": "https://dida365.com/windows",
     "regex": "dida_win_setup_release_x64_([0-9]+)\\.exe"
   },
   "autoupdate": {
