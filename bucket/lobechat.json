@@ -36,7 +36,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-1.118.8-setup.exe"
+        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
       }
     }
   }
