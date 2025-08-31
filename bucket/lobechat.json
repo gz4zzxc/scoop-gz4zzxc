@@ -1,5 +1,5 @@
 {
-  "version": "1.118.8",
+  "version": "1.120.0",
   "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
   "homepage": "https://github.com/lobehub/lobe-chat",
   "license": {
@@ -13,8 +13,8 @@
   ],
   "architecture": {
     "64bit": {
-      "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.118.8/LobeHub-Beta-1.118.8-setup.exe",
-      "hash": "0469f37962ae0a8bfbc9823b0bc58546f952d8247fc469a99c9c3f8e4001d816"
+      "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.120.0/LobeHub-Beta-1.120.0-setup.exe",
+      "hash": "642e3a85816c3d8f6453c1de65dddf501e19b1a5e38e4ce114fc64ef6bde6646"
     }
   },
   "installer": {
@@ -36,7 +36,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-1.120.0-setup.exe"
       }
     }
   }
