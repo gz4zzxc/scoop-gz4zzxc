@@ -4,127 +4,114 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a custom Scoop bucket for gz4zzxc's applications, providing Windows package manifests for various software tools. The bucket includes both standard applications and customized installations with specific configurations.
+This is a custom Scoop bucket for managing Windows applications through the Scoop package manager. The repository contains JSON manifests for various Chinese and international applications with automated update capabilities.
 
 ## Common Commands
 
 ### Testing Manifests
-```powershell
-# Test a specific manifest installation
-scoop install .\bucket\appname.json
+```bash
+# Validate JSON syntax of all manifests
+python3 -m json.tool bucket/*.json
 
-# Test with current manifest (lobechat has comprehensive test script)
-.\tests\test-lobechat-installer.ps1
+# Test installation of a specific app (requires Scoop on Windows)
+scoop install bucket/app-name.json
 
-# Test specific installer scenarios
-.\tests\test-lobechat-installer.ps1 -MsiMock
-.\tests\test-lobechat-installer.ps1 -PortableMock
+# Check manifest syntax using Scoop's built-in validation
+scoop checkver bucket/app-name.json
 ```
 
-### Development Workflow
-```powershell
-# Clean app cache before testing
-scoop cache rm appname
-
-# Uninstall app (purge)
-scoop uninstall appname -p
-
-# Install with keep flag (for testing)
-scoop install appname -k
-
-# Validate JSON syntax
-python3 -m json.tool bucket/appname.json
+### Running Updates
+```bash
+# The automated update system runs via GitHub Actions daily
+# Manual testing of update logic:
+python3 .github/workflows/excavator.yml  # Run update checks locally
 ```
+
+### Adding New Applications
+1. Create manifest file in `bucket/` directory following Scoop JSON schema
+2. Include required fields: `version`, `description`, `homepage`, `architecture`, `bin`
+3. Add `checkver` and `autoupdate` configurations for automatic updates
+4. Test the manifest with `scoop install` before submitting PR
 
 ## Architecture
 
-### Bucket Structure
-- `bucket/` - Contains JSON manifests for each application
-- `tests/` - PowerShell test scripts for installer validation
-- `.github/workflows/` - GitHub Actions for automated updates and validation
+### Automated Update System
+The project features a sophisticated automated update system (`.github/workflows/excavator.yml`) that:
 
-### Key Applications
+- **Runs daily** at 8:00 AM Beijing Time
+- **Handles complex download scenarios** with custom User-Agent headers and fallback mechanisms
+- **Supports multiple update strategies**:
+  - GitHub API releases (LobeChat, Miniforge)
+  - Web scraping with regex extraction (AliyunDrive, Dida365)
+  - CDN URL verification and fallback testing
 
-**Miniforge (Custom Conda)**
-- Customized version that only exposes `conda` (not `python`) to avoid system conflicts
-- Installs to `Miniforge3` subdirectory within Scoop app directory
-- Includes cleanup logic for previous installations
-- Uses official conda-forge releases with auto-update
+### Manifest Structure
+All manifests follow the modern Scoop architecture format:
 
-**AliyunDrive** 
-- Special handling for download restrictions with User-Agent headers
-- Fallback download mechanisms for reliability
-- Placeholder URL structure with pre-install download logic
-
-**LobeChat**
-- Electron-based desktop application
-- Custom installer test script supporting multiple scenarios (MSI, portable, setup.exe)
-- Silent installation with `/S` flag
-- Registry-based uninstall detection
-
-
-### Auto-Update System
-The bucket uses a hybrid approach:
-- **Custom Python scripts** for AliyunDrive, Miniforge, and LobeChat (handles complex download logic)
-- **Daily schedule** at 8:00 AM Beijing Time
-- **PR-based updates** with auto-merge for simple manifests
-
-### Special Patterns
-
-**Placeholder URL Pattern**
-Used for apps with complex download logic (AliyunDrive):
 ```json
-"url": "https://raw.githubusercontent.com/gz4zzxc/scoop-gz4zzxc/main/placeholder.txt#/aDrive-6.8.7.exe"
-```
-Actual download happens in `pre_install` script.
-
-**Multi-Architecture Support**
-Example pattern with separate URLs/hashes per architecture:
-```json
-"architecture": {
-  "64bit": { "url": "...", "hash": "..." },
-  "32bit": { "url": "...", "hash": "..." },
-  "arm64": { "url": "...", "hash": "..." }
+{
+  "version": "x.y.z",
+  "architecture": {
+    "64bit": {
+      "url": "...",
+      "hash": "..."
+    }
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "..."
+      }
+    }
+  }
 }
 ```
 
-**Custom Installation Logic**
-Complex installations use PowerShell scripts in `installer` section with:
-- Progress indicators and error handling
-- File extraction and cleanup
-- Registry-based uninstall detection
-- User feedback with colored output
+### Special Handling by Application
 
-## Testing Strategy
+**AliyunDrive**: 
+- Requires custom User-Agent headers to bypass CDN restrictions
+- Implements multi-step fallback download verification
+- URL pattern: `https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{version}.exe`
 
-### LobeChat Test Script
-The most comprehensive test covers:
-- **Setup.exe branch** - Tests real upstream assets
-- **MSI branch** - Mocks with known MSI installer
-- **Portable branch** - Creates portable version with local HTTP server
+**Miniforge**:
+- Custom conda-only installation (excludes python.exe shim)
+- Installs to `Miniforge3` subdirectory
+- GitHub API-based version checking with SHA256 verification
 
-### Validation Checks
-- JSON syntax validation for all manifests
-- Download URL accessibility verification
-- Hash verification for downloaded assets
-- Installation/uninstallation cycle testing
-- Shim creation validation
+**Dida365**:
+- Converts version numbers between semantic format (6.3.5.0) and numeric format (6350)
+- Handles UAC prompts during installation with NSIS silent install
+- CDN URL pattern: `https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version}.exe`
 
-## Important Notes
+**LobeChat**:
+- Uses GitHub releases with complex asset name patterns
+- Falls back to parsing `latest.yml` when exact asset names change
+- Electron-builder NSIS installer with silent install support
 
-### Language Conventions
-- All user-facing messages should be in Chinese with proper直角引号「」
-- Comments and code should remain in English
-- Error messages should be bilingual where appropriate
+## Development Notes
 
-### Security Considerations
-- All downloads use proper User-Agent headers
-- Hash verification is mandatory for all packages
-- Registry operations are handled with error boundaries
-- Temporary files are properly cleaned up
+### Manifest Validation
+- All manifests must pass JSON syntax validation
+- SHA256 hashes are required for security integrity
+- URLs must be accessible and return correct installers
+- `architecture.64bit` structure is preferred over root-level fields
 
-### Version Management
-- Version checking uses multiple fallback methods
-- Auto-update URLs are carefully constructed
-- README version table is updated automatically
-- PR descriptions include detailed version change information
+### Update Logic Patterns
+- **GitHub Releases**: Use `github: user/repo` in checkver
+- **Web Scraping**: Implement fallback mechanisms for CDN restrictions
+- **Version Conversion**: Handle semantic vs. custom version formats
+- **Download Verification**: Always verify URLs exist before updating manifests
+
+### Testing Guidelines
+- Test installations on Windows systems with Scoop installed
+- Verify updates work by running the automated update logic
+- Check that shortcuts and bin entries work correctly
+- Ensure uninstallation removes all components cleanly
+
+### Error Handling
+The automated system includes comprehensive error handling:
+- Fallback download methods when primary fails
+- Version number extraction from multiple sources
+- URL accessibility verification before committing changes
+- Graceful handling of missing or malformed assets
