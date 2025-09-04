@@ -8,8 +8,9 @@
   },
   "notes": [
     "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
+    "此清单已迁移为 lobehub，建议使用命令: scoop install lobehub",
     "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
-    "更新时如有进程占用，请先退出托盘后再执行 scoop update lobechat"
+    "更新时如有进程占用，请先退出托盘后再执行 scoop update lobehub"
   ],
   "architecture": {
     "64bit": {
