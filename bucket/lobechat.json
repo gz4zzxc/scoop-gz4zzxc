@@ -24,12 +24,12 @@
     ]
   },
   "bin": [
-    "LobeChat.exe",
+    "LobeHub.exe",
     "lobehub"
   ],
   "shortcuts": [
     [
-      "LobeChat.exe",
+      "LobeHub.exe",
       "LobeChat"
     ]
   ],
