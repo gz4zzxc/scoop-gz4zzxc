@@ -415,6 +415,104 @@ jobs:
             with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
           EOF
 
+      - name: Check for LobeHub updates
+        id: check-lobehub
+        run: |
+          python3 <<'EOF'
+          import json, os, re, requests, hashlib
+
+          MANIFEST = 'bucket/lobehub.json'
+          REPO = 'lobehub/lobe-chat'
+          api = f'https://api.github.com/repos/{REPO}/releases/latest'
+          headers = {'Accept':'application/vnd.github+json','User-Agent':'gh-actions'}
+          try:
+            if os.path.exists(MANIFEST):
+              with open(MANIFEST,'r',encoding='utf-8') as f:
+                manifest = json.load(f)
+            else:
+              manifest = {
+                'version':'0.0.0',
+                'description':'LobeChat desktop client',
+                'homepage':'https://github.com/lobehub/lobe-chat',
+                'license':'Apache-2.0'
+              }
+            current_version = manifest.get('version','0.0.0')
+            resp = requests.get(api, timeout=30, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            tag = data.get('tag_name','')
+            if not tag:
+              raise RuntimeError('No tag_name in latest release response')
+            version = tag.lstrip('vV')
+            assets = data.get('assets', [])
+            pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$', re.IGNORECASE)
+            asset = next((a for a in assets if pattern.match(a.get('name',''))), None)
+            url = asset.get('browser_download_url') if asset else None
+            if not url:
+              try:
+                yml_url = f"https://github.com/{REPO}/releases/download/{tag}/latest.yml"
+                yml_resp = requests.get(yml_url, timeout=30, headers=headers)
+                yml_resp.raise_for_status()
+                yml_content = yml_resp.text
+                path_match = re.search(r'^\s*path:\s*(\S+\.exe)\s*$', yml_content, re.MULTILINE)
+                if path_match:
+                  exe_name = path_match.group(1).strip()
+                  asset = next((a for a in assets if a.get('name') == exe_name), None)
+                  if asset:
+                    url = asset.get('browser_download_url')
+                  else:
+                    url = f"https://github.com/{REPO}/releases/download/{tag}/{exe_name}"
+              except Exception:
+                pass
+            if not url:
+              raise RuntimeError(f'Setup asset not found for version {version}')
+
+            dl = requests.get(url, timeout=600, stream=True, headers=headers)
+            dl.raise_for_status()
+            h = hashlib.sha256(); size=0
+            for chunk in dl.iter_content(262144):
+              if not chunk: continue
+              h.update(chunk); size += len(chunk)
+            sha256 = h.hexdigest()
+            updated = False
+            if manifest.get('version') != version:
+              manifest['version'] = version; updated = True
+
+            if 'architecture' not in manifest:
+              manifest['architecture'] = {}
+            if '64bit' not in manifest['architecture']:
+              manifest['architecture']['64bit'] = {}
+
+            exe_name = url.rsplit('/', 1)[-1]
+            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}"
+            if manifest['architecture']['64bit'].get('url') != desired_url:
+              manifest['architecture']['64bit']['url'] = desired_url; updated = True
+            if manifest['architecture']['64bit'].get('hash','').lower() != sha256.lower():
+              manifest['architecture']['64bit']['hash'] = sha256; updated = True
+
+            desired_autoupdate = {
+              'architecture': {
+                '64bit': {
+                  'url': f'https://github.com/lobehub/lobe-chat/releases/download/v$version/{exe_name}'
+                }
+              }
+            }
+            if manifest.get('autoupdate') != desired_autoupdate:
+              manifest['autoupdate'] = desired_autoupdate; updated = True
+
+            if updated:
+              with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
+              with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+                f.write('updated=true\n'); f.write(f'old_version={current_version}\n'); f.write(f'new_version={version}\n')
+            else:
+              with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+          except Exception as e:
+            print(f'❌ Error updating LobeHub: {e}')
+            import traceback
+            traceback.print_exc()
+            with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
+          EOF
+
       - name: Check for Dida365 updates
         id: check-dida365
         run: |
@@ -634,7 +732,7 @@ jobs:
           EOF
 
       - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
+        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true' || steps.check-lobehub.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
         run: |
           python3 << 'EOF'
           import re
@@ -670,6 +768,18 @@ jobs:
                   insert_row = f"\n| lobechat | LobeChat 桌面客户端 | {new_lc} |"
                   content = re.sub(table_header, table_header + insert_row, content, count=1)
 
+          old_lh = "${{ steps.check-lobehub.outputs.old_version }}" or None
+          new_lh = "${{ steps.check-lobehub.outputs.new_version }}" or None
+          if old_lh and new_lh:
+              pattern = r'(\| lobehub \| .+ \| )' + re.escape(old_lh) + r'( \|)'
+              replacement = r'\g<1>' + new_lh + r'\g<2>'
+              new_content, n = re.subn(pattern, replacement, content)
+              content = new_content
+              if n == 0:
+                  table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
+                  insert_row = f"\n| lobehub | LobeChat 桌面客户端 | {new_lh} |"
+                  content = re.sub(table_header, table_header + insert_row, content, count=1)
+
           old_dd = "${{ steps.check-dida365.outputs.old_version }}" or None
           new_dd = "${{ steps.check-dida365.outputs.new_version }}" or None
           if old_dd and new_dd:
@@ -693,7 +803,7 @@ jobs:
         run: |
           # 使用 git status 更可靠地检测更改，同时结合步骤输出兜底
           CHANGED=$(git status --porcelain -- bucket/*.json README.md || true)
-          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
+          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
             echo "no-changes=false" >> $GITHUB_OUTPUT
             echo "Detected changes:" && printf "%s\n" "$CHANGED"
           else
@@ -723,6 +833,10 @@ jobs:
           
           if [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
             COMMIT_MSG="$COMMIT_MSG - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}"
+          fi
+
+          if [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - LobeHub: ${{ steps.check-lobehub.outputs.old_version }} -> ${{ steps.check-lobehub.outputs.new_version }}"
           fi
           
           if [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
