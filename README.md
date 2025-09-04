@@ -1,6 +1,6 @@
 | App | Description | Version |
 |-----|-------------|---------|
-| lobechat | LobeChat 桌面客户端 | 1.121.1 |# scoop-gz4zzxc
+| lobehub | LobeChat 桌面客户端 | 1.121.1 |# scoop-gz4zzxc
 
 [![Excavator](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml/badge.svg)](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml)
 
@@ -25,7 +25,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 
 | App | Description | Version |
 |-----|-------------|---------|
-| lobechat | LobeChat 桌面客户端 | 1.116.4 |
+| lobehub | LobeChat 桌面客户端 | 1.116.4 |
 | miniforge | Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器（仅暴露 conda，不暴露 python；安装到 Miniforge3 子目录） | 25.3.1-0 |
 | aliyundrive | 阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品 | 6.8.7 |
 | eudic | 欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能 | 25.7.3 |
@@ -74,7 +74,7 @@ conda deactivate
 - 方式 B：编辑本仓库 `bucket/miniforge.json`，在 `bin` 中加入：
 
 ```json
-"Miniforge3\\\python.exe"
+"Miniforge3\\python.exe"
 ```
 
 保存后同步到本机 bucket 并重新安装 `miniforge`，Scoop 会创建 `python.exe` 的 shim（会改变默认 `python` 指向，请谨慎操作）。
