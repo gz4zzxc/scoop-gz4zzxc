@@ -19,16 +19,17 @@
   },
   "installer": {
     "args": [
-      "/S"
+      "/S",
+      "/D=$dir"
     ]
   },
   "bin": [
-    "LobeHub.exe",
+    "LobeChat.exe",
     "lobehub"
   ],
   "shortcuts": [
     [
-      "LobeHub.exe",
+      "LobeChat.exe",
       "LobeChat"
     ]
   ],
