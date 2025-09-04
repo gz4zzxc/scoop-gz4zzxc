@@ -294,13 +294,13 @@ jobs:
                   f.write('updated=false\n')
           EOF
 
-      - name: Check for LobeChat updates
-        id: check-lobechat
+      - name: Check for LobeHub updates
+        id: check-lobehub
         run: |
           python3 <<'EOF'
           import json, os, re, requests, hashlib
 
-          MANIFEST = 'bucket/lobechat.json'
+          MANIFEST = 'bucket/lobehub.json'
           REPO = 'lobehub/lobe-chat'
           api = f'https://api.github.com/repos/{REPO}/releases/latest'
           headers = {'Accept':'application/vnd.github+json','User-Agent':'gh-actions'}
@@ -404,12 +404,12 @@ jobs:
               with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
               with open(os.environ['GITHUB_OUTPUT'],'a') as f:
                 f.write('updated=true\n'); f.write(f'old_version={current_version}\n'); f.write(f'new_version={version}\n')
-              print(f'Updated LobeChat {current_version} -> {version} (~{size/1024/1024:.2f} MB)')
+              print(f'Updated LobeHub {current_version} -> {version} (~{size/1024/1024:.2f} MB)')
             else:
               with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
-              print('LobeChat is up to date')
+              print('LobeHub is up to date')
           except Exception as e:
-            print(f'❌ Error updating LobeChat: {e}')
+            print(f'❌ Error updating LobeHub: {e}')
             import traceback
             traceback.print_exc()
             with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
@@ -634,7 +634,7 @@ jobs:
           EOF
 
       - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobechat.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
+        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobehub.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
         run: |
           python3 << 'EOF'
           import re
@@ -656,21 +656,17 @@ jobs:
               replacement = r'\g<1>' + new_mf + r'\g<2>'
               content = re.sub(pattern, replacement, content)
 
-          old_lc = "${{ steps.check-lobechat.outputs.old_version }}" or None
-          new_lc = "${{ steps.check-lobechat.outputs.new_version }}" or None
-          if old_lc and new_lc:
-              # 更新已存在行
-              pattern = r'(\| lobechat \| .+ \| )' + re.escape(old_lc) + r'( \|)'
-              replacement = r'\g<1>' + new_lc + r'\g<2>'
+          old_lh = "${{ steps.check-lobehub.outputs.old_version }}" or None
+          new_lh = "${{ steps.check-lobehub.outputs.new_version }}" or None
+          if old_lh and new_lh:
+              pattern = r'(\| lobehub \| .+ \| )' + re.escape(old_lh) + r'( \|)'
+              replacement = r'\g<1>' + new_lh + r'\g<2>'
               new_content, n = re.subn(pattern, replacement, content)
               content = new_content
-              # 如果不存在 lobechat 行，则插入一行（在表格头之后）
               if n == 0:
                   table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
-                  insert_row = f"\n| lobechat | LobeChat 桌面客户端 | {new_lc} |"
+                  insert_row = f"\n| lobehub | LobeChat 桌面客户端 | {new_lh} |"
                   content = re.sub(table_header, table_header + insert_row, content, count=1)
-
-          # lobehub 行已移除
 
           old_dd = "${{ steps.check-dida365.outputs.old_version }}" or None
           new_dd = "${{ steps.check-dida365.outputs.new_version }}" or None
@@ -695,7 +691,7 @@ jobs:
         run: |
           # 使用 git status 更可靠地检测更改，同时结合步骤输出兜底
           CHANGED=$(git status --porcelain -- bucket/*.json README.md || true)
-          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
+          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
             echo "no-changes=false" >> $GITHUB_OUTPUT
             echo "Detected changes:" && printf "%s\n" "$CHANGED"
           else
@@ -723,8 +719,8 @@ jobs:
             COMMIT_MSG="$COMMIT_MSG - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}"
           fi
           
-          if [ "${{ steps.check-lobechat.outputs.updated }}" = "true" ]; then
-            COMMIT_MSG="$COMMIT_MSG - LobeChat: ${{ steps.check-lobechat.outputs.old_version }} -> ${{ steps.check-lobechat.outputs.new_version }}"
+          if [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ]; then
+            COMMIT_MSG="$COMMIT_MSG - LobeHub: ${{ steps.check-lobehub.outputs.old_version }} -> ${{ steps.check-lobehub.outputs.new_version }}"
           fi
           
           if [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
