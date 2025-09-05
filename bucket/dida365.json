@@ -1,48 +1,53 @@
 {
-  "version": "6.3.5.0",
-  "description": "滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作",
-  "homepage": "https://dida365.com/",
-  "license": "Proprietary",
-  "notes": [
-    "此包使用官方 Windows 安装程序 (NSIS)，支持 /S 静默安装",
-    "⚠️  安装时会弹出 Windows UAC (用户账户控制) 权限对话框，这是正常的系统安全机制",
-    "请在 UAC 对话框中点击「是」以允许安装，这不会影响系统安全",
-    "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
-    "更新时如有进程占用，请先退出托盘后再执行 scoop update dida365",
-    "如需完全静默安装，请以管理员身份运行 PowerShell 后再执行 scoop install"
-  ],
-  "architecture": {
-    "64bit": {
-      "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6350.exe",
-      "hash": "46a57e5c04a954e77796d0e2d78b6f8eece7c5f57e27f715987dda96af9561a8"
-    }
-  },
-  "pre_install": [
-    "Write-Host '⚠️  滴答清单需要管理员权限进行安装' -ForegroundColor Yellow",
-    "Write-Host '如果弹出 UAC 权限对话框，请点击「是」继续安装' -ForegroundColor Yellow",
-    "Write-Host '这是 Windows 系统安全机制，无法绕过' -ForegroundColor Cyan"
-  ],
-  "installer": {
-    "args": [
-      "/S",
-      "/SP-",
-      "/NORESTART"
-    ]
-  },
-  "bin": "TickTick.exe",
-  "shortcuts": [["TickTick.exe", "滴答清单"]],
-  "checkver": {
-    "url": "https://dida365.com/windows",
-    "regex": "dida_win_setup_release_x64_([0-9]+)\\.exe"
-  },
-  "autoupdate": {
+    "version": "6.3.6.0",
+    "description": "滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作",
+    "homepage": "https://dida365.com/",
+    "license": "Proprietary",
+    "notes": [
+        "此包使用官方 Windows 安装程序 (NSIS)，支持 /S 静默安装",
+        "⚠️  安装时会弹出 Windows UAC (用户账户控制) 权限对话框，这是正常的系统安全机制",
+        "请在 UAC 对话框中点击「是」以允许安装，这不会影响系统安全",
+        "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
+        "更新时如有进程占用，请先退出托盘后再执行 scoop update dida365",
+        "如需完全静默安装，请以管理员身份运行 PowerShell 后再执行 scoop install"
+    ],
     "architecture": {
-      "64bit": {
-        "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$cleanVersion.exe"
-      }
+        "64bit": {
+            "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6360.exe#dl.7z",
+            "hash": "ceee33f039e6fe9c0471d69312d07ab377b851058fd23345c5c5f115b6b7db40"
+        }
     },
-    "hash": {
-      "mode": "download"
+    "pre_install": [
+        "Write-Host '⚠️  滴答清单需要管理员权限进行安装' -ForegroundColor Yellow",
+        "Write-Host '如果弹出 UAC 权限对话框，请点击「是」继续安装' -ForegroundColor Yellow",
+        "Write-Host '这是 Windows 系统安全机制，无法绕过' -ForegroundColor Cyan"
+    ],
+    "installer": {
+        "args": [
+            "/S",
+            "/SP-",
+            "/NORESTART"
+        ]
+    },
+    "bin": "TickTick.exe",
+    "shortcuts": [
+        [
+            "TickTick.exe",
+            "滴答清单"
+        ]
+    ],
+    "checkver": {
+        "url": "https://dida365.com/windows",
+        "regex": "dida_win_setup_release_x64_([0-9]+)\\.exe"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6360.exe#dl.7z"
+            }
+        },
+        "hash": {
+            "mode": "download"
+        }
     }
-  }
 }
