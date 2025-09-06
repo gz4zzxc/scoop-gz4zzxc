@@ -1,8 +1,4 @@
-| App | Description | Version |
-|-----|-------------|---------|
-| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | 6.3.6.0 || App | Description | Version |
-|-----|-------------|---------|
-| lobehub | LobeChat 桌面客户端 | 1.123.4 |# scoop-gz4zzxc
+# scoop-gz4zzxc
 
 [![Excavator](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml/badge.svg)](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml)
 

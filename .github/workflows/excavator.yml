@@ -664,9 +664,10 @@ jobs:
               new_content, n = re.subn(pattern, replacement, content)
               content = new_content
               if n == 0:
-                  table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
-                  insert_row = f"\n| lobehub | LobeChat 桌面客户端 | {new_lh} |"
-                  content = re.sub(table_header, table_header + insert_row, content, count=1)
+                  # 在 Available Apps 表格的最后一行后面插入新行
+                  table_end_pattern = r'(\| [^|]+ \| [^|]+ \| [^|]+ \|\n)(?=\n###|$)'
+                  insert_row = f"| lobehub | LobeChat 桌面客户端 | {new_lh} |\n"
+                  content = re.sub(table_end_pattern, r'\1' + insert_row, content, count=1)
 
           old_dd = "${{ steps.check-dida365.outputs.old_version }}" or None
           new_dd = "${{ steps.check-dida365.outputs.new_version }}" or None
@@ -676,11 +677,11 @@ jobs:
               replacement = r'\g<1>' + new_dd + r'\g<2>'
               new_content, n = re.subn(pattern, replacement, content)
               content = new_content
-              # 如果不存在 dida365 行，则插入一行（在表格头之后）
+              # 如果不存在 dida365 行，则在 Available Apps 表格的最后一行后面插入新行
               if n == 0:
-                  table_header = r"| App | Description | Version |\n|-----|-------------|---------|"
-                  insert_row = f"\n| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | {new_dd} |"
-                  content = re.sub(table_header, table_header + insert_row, content, count=1)
+                  table_end_pattern = r'(\| [^|]+ \| [^|]+ \| [^|]+ \|\n)(?=\n###|$)'
+                  insert_row = f"| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | {new_dd} |\n"
+                  content = re.sub(table_end_pattern, r'\1' + insert_row, content, count=1)
 
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
