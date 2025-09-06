@@ -43,7 +43,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6360.exe#dl.7z"
+                "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$match1.exe#dl.7z"
             }
         },
         "hash": {
