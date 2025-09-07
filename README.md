@@ -148,14 +148,18 @@ Get-ChildItem "$env:USERPROFILE\scoop\apps\dida365\current" | Select Name
 
 ## Auto-Update
 
-This bucket includes an automated update system that checks for new versions daily:
+This bucket uses Scoop’s native checkver/autoupdate to refresh manifests and the README version table:
 
-- **Schedule**: Every day at 8:00 AM Beijing Time
-- **Target**: All apps with checkver/autoupdate configurations
-- **Actions**:
-  - **AliyunDrive**: Custom update logic for download restrictions
-  - **Other Apps**: Uses official ScoopInstaller/Excavator for automatic updates
-  - Automatically updates manifest files, creates releases, and notifies via issues
+- **Schedule**: Daily at 08:00 Beijing Time (00:00 UTC), plus manual dispatch
+- **Scope**: All apps that define `checkver` and `autoupdate`
+- **Mechanism**:
+  - Runs `checkver * -u` to bump `version`, `url`, and `hash` where needed
+  - Updates the Versions in the README “Available Apps” table to match manifests
+  - Opens an automated PR with the changes for review
+
+Notes:
+- The workflow runs on `windows-latest` and installs Scoop transiently to use `checkver.ps1` (per Scoop docs)
+- If upstream has no new release, the run completes with “No changes” and no PR is created
 
 ## Contributing
 
