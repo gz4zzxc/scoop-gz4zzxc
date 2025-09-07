@@ -13,7 +13,7 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6360.exe#dl.7z",
+            "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_6360.exe",
             "hash": "ceee33f039e6fe9c0471d69312d07ab377b851058fd23345c5c5f115b6b7db40"
         }
     },
@@ -43,7 +43,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$match1.exe#dl.7z"
+                "url": "https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_$match1.exe"
             }
         },
         "hash": {
