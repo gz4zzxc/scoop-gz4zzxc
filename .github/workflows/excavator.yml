@@ -1,6 +1,8 @@
 name: Auto Update Manifests
 
 on:
+  push:
+    branches: [ main ]
   schedule:
     # Run at 8:00 AM Beijing Time (UTC+8) = 00:00 UTC every day
     - cron: '0 0 * * *'
