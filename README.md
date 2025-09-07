@@ -155,7 +155,7 @@ This bucket uses Scoop’s native checkver/autoupdate to refresh manifests and t
 - **Mechanism**:
   - Runs `checkver * -u` to bump `version`, `url`, and `hash` where needed
   - Updates the Versions in the README “Available Apps” table to match manifests
-  - Opens an automated PR with the changes for review
+  - Commits and pushes changes directly to `main` with `[skip ci]` to avoid loop
 
 Notes:
 - The workflow runs on `windows-latest` and installs Scoop transiently to use `checkver.ps1` (per Scoop docs)
