@@ -13,10 +13,13 @@ permissions:
 
 jobs:
   update-manifests:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     concurrency:
       group: update-manifests-${{ github.ref }}
       cancel-in-progress: true
+    env:
+      # Allow Scoop checkver to use GitHub API at higher rate limits
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,716 +27,118 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Validate JSON manifests
+        shell: pwsh
         run: |
-          pip install requests beautifulsoup4 lxml
+          Write-Host 'Validating manifest JSON...' -ForegroundColor Cyan
+          Get-ChildItem bucket -Filter *.json | ForEach-Object {
+            try {
+              Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
+              Write-Host "✅ $($_.Name) is valid JSON"
+            } catch {
+              Write-Host "❌ $($_.Name) has invalid JSON: $($_.Exception.Message)" -ForegroundColor Red
+              throw
+            }
+          }
 
-      - name: Validate current manifests
+      - name: Install Scoop (for checkver/autoupdate)
+        shell: pwsh
         run: |
-          echo "Validating manifest files..."
-          for manifest in bucket/*.json; do
-            echo "Checking $manifest..."
-            python3 -m json.tool "$manifest" > /dev/null && echo "✅ $manifest is valid JSON" || echo "❌ $manifest has invalid JSON"
-          done
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          iwr -useb get.scoop.sh | iex
+          scoop config aria2-warning-enabled false
+          scoop install git
 
-      - name: Check for AliyunDrive updates
-        id: check-updates
+      - name: Run checkver for all manifests
+        shell: pwsh
         run: |
-          python3 << 'EOF'
-          import json
-          import re
-          import requests
-          from datetime import datetime
-          import os
+          $checkver = "$env:USERPROFILE\scoop\apps\scoop\current\bin\checkver.ps1"
+          if (-not (Test-Path $checkver)) {
+            Write-Host "Downloading checkver.ps1 as fallback..." -ForegroundColor Yellow
+            $checkver = Join-Path $env:RUNNER_TEMP 'checkver.ps1'
+            iwr -useb https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/bin/checkver.ps1 -OutFile $checkver
+          }
+          & pwsh -File $checkver * -u -dir (Resolve-Path .).Path
 
-          def check_aliyundrive_update():
-              try:
-                  # Read current version from manifest
-                  with open('bucket/aliyundrive.json', 'r', encoding='utf-8') as f:
-                      manifest = json.load(f)
-                  current_version = manifest['version']
-
-                  print(f"Current version: {current_version}")
-
-                  # Method 1: Try to fetch download page directly
-                  try:
-                      response = requests.get('https://www.aliyundrive.com/download',
-                                            timeout=30,
-                                            headers={
-                                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                                            })
-                      response.raise_for_status()
-
-                      # Extract version from download URL
-                      version_match = re.search(r'aDrive-(\d+\.\d+\.\d+)\.exe', response.text)
-                      if version_match:
-                          latest_version = version_match.group(1)
-                          print(f"Found version from download page: {latest_version}")
-                      else:
-                          raise Exception("Version not found in download page")
-
-                  except Exception as e:
-                      print(f"Method 1 failed: {e}")
-                      # Method 2: Check if current version download URL is still valid
-                      current_download_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{current_version}.exe"
-                      print(f"Checking if current version download URL is still valid: {current_download_url}")
-                      try:
-                          head_response = requests.head(current_download_url, timeout=10, headers={
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                          })
-                          if head_response.status_code == 200:
-                              print("✅ Current version download URL is still valid, assuming no update")
-                              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                                  f.write(f"updated=false\n")
-                              return False
-                          else:
-                              print(f"❌ Current download URL returned {head_response.status_code}")
-                      except Exception as url_check_error:
-                          print(f"❌ Error checking current download URL: {url_check_error}")
-
-                      # Method 3: Try common version increments
-                      version_parts = current_version.split('.')
-                      if len(version_parts) == 3:
-                          # Try incrementing patch version
-                          patch = int(version_parts[2])
-                          for i in range(1, 10):  # Try next 9 patch versions
-                              test_version = f"{version_parts[0]}.{version_parts[1]}.{patch + i}"
-                              test_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{test_version}.exe"
-                              print(f"Testing version {test_version}...")
-                              test_response = requests.head(test_url, timeout=5, headers={
-                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                              })
-                              if test_response.status_code == 200:
-                                  latest_version = test_version
-                                  print(f"Found newer version: {latest_version}")
-                                  break
-                          else:
-                              print("No newer version found through URL testing")
-                              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                                  f.write(f"updated=false\n")
-                              return False
-                      else:
-                          print("Cannot parse current version format")
-                          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                              f.write(f"updated=false\n")
-                          return False
-
-                  download_url = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{latest_version}.exe"
-                  print(f"Latest version: {latest_version}")
-
-                  if latest_version != current_version:
-                      # Verify the new URL exists with proper User-Agent
-                      verify_response = requests.head(download_url, timeout=10, headers={
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                      })
-                      if verify_response.status_code != 200:
-                          print(f"❌ New version URL not accessible: {verify_response.status_code}")
-                          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                              f.write(f"updated=false\n")
-                          return False
-
-                      # Download the file to calculate hash
-                      print("Downloading installer to calculate hash...")
-                      response = requests.get(download_url, timeout=600, stream=True, headers={
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                      })
-                      response.raise_for_status()
-
-                      # Calculate SHA256 hash
-                      import hashlib
-                      sha256_hash = hashlib.sha256()
-                      for chunk in response.iter_content(chunk_size=8192):
-                          sha256_hash.update(chunk)
-                      file_hash = sha256_hash.hexdigest()
-                      print(f"Calculated SHA256: {file_hash}")
-
-                      # Update manifest with new architecture structure
-                      manifest['version'] = latest_version
-                      
-                      # Update architecture.64bit configuration
-                      if 'architecture' not in manifest:
-                          manifest['architecture'] = {}
-                      if '64bit' not in manifest['architecture']:
-                          manifest['architecture']['64bit'] = {}
-                      
-                      manifest['architecture']['64bit']['url'] = download_url
-                      manifest['architecture']['64bit']['hash'] = file_hash
-
-                      # Update autoupdate configuration
-                      if 'autoupdate' in manifest:
-                          if 'architecture' not in manifest['autoupdate']:
-                              manifest['autoupdate']['architecture'] = {}
-                          if '64bit' not in manifest['autoupdate']['architecture']:
-                              manifest['autoupdate']['architecture']['64bit'] = {}
-                          manifest['autoupdate']['architecture']['64bit']['url'] = f"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe"
-
-                      # Write updated manifest
-                      with open('bucket/aliyundrive.json', 'w', encoding='utf-8') as f:
-                          json.dump(manifest, f, indent=4, ensure_ascii=False)
-
-                      # Set output for GitHub Actions
-                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                          f.write(f"updated=true\n")
-                          f.write(f"old_version={current_version}\n")
-                          f.write(f"new_version={latest_version}\n")
-
-                      print(f"✅ Updated AliyunDrive from {current_version} to {latest_version}")
-                      return True
-                  else:
-                      print("✅ AliyunDrive is up to date")
-                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                          f.write(f"updated=false\n")
-                      return False
-
-              except Exception as e:
-                  print(f"❌ Error checking AliyunDrive updates: {e}")
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write(f"updated=false\n")
-                  return False
-
-          check_aliyundrive_update()
-          EOF
-
-      - name: Check for Miniforge updates
-        id: check-miniforge
+      - name: Update README version table
+        shell: pwsh
         run: |
-          python3 << 'EOF'
-          import json
-          import re
-          import os
-          import requests
+          $path = 'README.md'
+          if (-not (Test-Path $path)) { exit 0 }
+          $content = Get-Content $path -Raw -Encoding UTF8
 
-          def latest_miniforge():
-              api = 'https://api.github.com/repos/conda-forge/miniforge/releases/latest'
-              r = requests.get(api, timeout=30, headers={'Accept':'application/vnd.github+json','User-Agent':'gh-actions'})
-              r.raise_for_status()
-              data = r.json()
-              tag = data.get('tag_name')
-              assets = data.get('assets', [])
-              exe_name = f'Miniforge3-{tag}-Windows-x86_64.exe'
-              sha_name = exe_name + '.sha256'
-              exe_url = None
-              sha_url = None
-              for a in assets:
-                  if a.get('name') == exe_name:
-                      exe_url = a.get('browser_download_url')
-                  if a.get('name') == sha_name:
-                      sha_url = a.get('browser_download_url')
-              if not exe_url or not sha_url:
-                  raise RuntimeError('Miniforge Windows x86_64 asset or sha256 not found')
-              sha_resp = requests.get(sha_url, timeout=30)
-              sha_resp.raise_for_status()
-              m = re.search(r'^([0-9a-fA-F]{64})', sha_resp.text)
-              if not m:
-                  raise RuntimeError('Unable to parse sha256')
-              sha = m.group(1).lower()
-              return tag, exe_url, sha
-
-          try:
-              manifest_path = 'bucket/miniforge.json'
-              with open(manifest_path, 'r', encoding='utf-8') as f:
-                  manifest = json.load(f)
-              current_version = manifest.get('version')
-
-              new_version, exe_url, sha = latest_miniforge()
-
-              desired_url = f'https://github.com/conda-forge/miniforge/releases/download/{new_version}/Miniforge3-{new_version}-Windows-x86_64.exe'
-              updated = False
-
-              if manifest.get('version') != new_version:
-                  updated = True
-                  manifest['version'] = new_version
-
-              arch = manifest.setdefault('architecture', {})
-              arch64 = arch.setdefault('64bit', {})
-              if arch64.get('url') != desired_url:
-                  updated = True
-                  arch64['url'] = desired_url
-              if arch64.get('hash', '').lower() != sha.lower():
-                  updated = True
-                  arch64['hash'] = sha
-              if 'arm64' in arch:
-                  updated = True
-                  arch.pop('arm64', None)
-
-              desired_autoupdate = {
-                  'architecture': {
-                      '64bit': {
-                          'url': 'https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe'
-                      }
-                  },
-                  'hash': {
-                      'url': 'https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe.sha256',
-                      'regex': '^([a-fA-F]{64})'
-                  }
-              }
-              if manifest.get('autoupdate') != desired_autoupdate:
-                  manifest['autoupdate'] = desired_autoupdate
-                  updated = True
-
-              if updated:
-                  with open(manifest_path, 'w', encoding='utf-8') as f:
-                      json.dump(manifest, f, indent=2, ensure_ascii=False)
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write('updated=true\n')
-                      f.write(f'old_version={current_version}\n')
-                      f.write(f'new_version={new_version}\n')
-                  print(f'Updated Miniforge from {current_version} to {new_version}')
-              else:
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write('updated=false\n')
-                  print('Miniforge is up to date')
-          except Exception as e:
-              print(f'Error checking Miniforge: {e}')
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write('updated=false\n')
-          EOF
-
-      - name: Check for LobeHub updates
-        id: check-lobehub
-        run: |
-          python3 <<'EOF'
-          import json, os, re, requests, hashlib
-
-          MANIFEST = 'bucket/lobehub.json'
-          REPO = 'lobehub/lobe-chat'
-          api = f'https://api.github.com/repos/{REPO}/releases/latest'
-          headers = {'Accept':'application/vnd.github+json','User-Agent':'gh-actions'}
-          try:
-            if os.path.exists(MANIFEST):
-              with open(MANIFEST,'r',encoding='utf-8') as f:
-                manifest = json.load(f)
-            else:
-              manifest = {
-                'version':'0.0.0',
-                'description':'LobeChat desktop client',
-                'homepage':'https://github.com/lobehub/lobe-chat',
-                'license':'Apache-2.0'
-              }
-            current_version = manifest.get('version','0.0.0')
-            resp = requests.get(api, timeout=30, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            tag = data.get('tag_name','')
-            if not tag:
-              raise RuntimeError('No tag_name in latest release response')
-            version = tag.lstrip('vV')
-            assets = data.get('assets', [])
-            # 1) 精确匹配：LobeHub-Beta-{version}-setup.exe
-            pattern = re.compile(rf'^LobeHub-Beta-{re.escape(version)}-setup\\.exe$', re.IGNORECASE)
-            asset = next((a for a in assets if pattern.match(a.get('name',''))), None)
-            url = asset.get('browser_download_url') if asset else None
-            # 2) 回退：解析 latest.yml，读取 path 字段
-            if not url:
-              print(f"Asset not found with pattern, trying latest.yml...")
-              try:
-                yml_url = f"https://github.com/{REPO}/releases/download/{tag}/latest.yml"
-                yml_resp = requests.get(yml_url, timeout=30, headers=headers)
-                yml_resp.raise_for_status()
-                yml_content = yml_resp.text
-                print(f"latest.yml content:\n{yml_content}")
-
-                # 解析 YAML 中的 path 字段
-                path_match = re.search(r'^\s*path:\s*(\S+\.exe)\s*$', yml_content, re.MULTILINE)
-                if path_match:
-                  exe_name = path_match.group(1).strip()
-                  print(f"Found exe name from latest.yml: {exe_name}")
-                  # 从 assets 里定位完整 URL
-                  asset = next((a for a in assets if a.get('name') == exe_name), None)
-                  if asset:
-                    url = asset.get('browser_download_url')
-                    print(f"Found asset URL: {url}")
-                  else:
-                    url = f"https://github.com/{REPO}/releases/download/{tag}/{exe_name}"
-                    print(f"Constructed URL: {url}")
-              except Exception as yml_error:
-                print(f"Failed to parse latest.yml: {yml_error}")
-            if not url:
-              raise RuntimeError(f'Setup asset not found for version {version}')
-
-            print(f"Using URL: {url}")
-            dl = requests.get(url, timeout=600, stream=True, headers=headers)
-            dl.raise_for_status()
-            h = hashlib.sha256(); size=0
-            for chunk in dl.iter_content(262144):
-              if not chunk: continue
-              h.update(chunk); size += len(chunk)
-            sha256 = h.hexdigest()
-            updated = False
-            if manifest.get('version') != version:
-              manifest['version'] = version; updated = True
-              print(f"Version changed: {current_version} -> {version}")
-            
-            # Update architecture.64bit configuration instead of root level
-            if 'architecture' not in manifest:
-              manifest['architecture'] = {}
-            if '64bit' not in manifest['architecture']:
-              manifest['architecture']['64bit'] = {}
-            
-            # 用实际获取到的 exe 名称构造 URL
-            exe_name = url.rsplit('/', 1)[-1]
-            desired_url = f"https://github.com/lobehub/lobe-chat/releases/download/v{version}/{exe_name}"
-            
-            if manifest['architecture']['64bit'].get('url') != desired_url:
-              manifest['architecture']['64bit']['url'] = desired_url; updated = True
-              print(f"URL changed: {manifest['architecture']['64bit'].get('url')} -> {desired_url}")
-            if manifest['architecture']['64bit'].get('hash','').lower() != sha256.lower():
-              manifest['architecture']['64bit']['hash'] = sha256; updated = True
-              print(f"Hash changed: {manifest['architecture']['64bit'].get('hash')} -> {sha256}")
-            
-            if manifest.get('checkver') != {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}:
-              manifest['checkver'] = {'github':'lobehub/lobe-chat','regex':'v([\\d.]+)'}; updated = True
-            
-            # Update autoupdate configuration with architecture structure
-            desired_autoupdate = {
-              'architecture': {
-                '64bit': {
-                  'url': f'https://github.com/lobehub/lobe-chat/releases/download/v$version/{exe_name}'
-                }
+          function Update-VersionRow([string]$app, [string]$version) {
+            $escaped = [regex]::Escape($app)
+            $pattern = "(?m)^\|\s*$escaped\s*\|\s.*?\|\s*([^|\n]+)(\s*\|)$"
+            $newContent = $script:content -replace $pattern, ('$1' + $version + '$2')
+            if ($newContent -ne $script:content) {
+              $script:content = $newContent
+            } else {
+              # If the row does not exist, insert a new row after the header row
+              $insert = "| $app | (auto) | $version |`n"
+              $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\n\|[-| ]+\n)"
+              if ([regex]::IsMatch($script:content, $tableHeader)) {
+                $script:content = [regex]::Replace($script:content, $tableHeader, { param($m) $m.Groups[1].Value + $insert }, 1)
+              } else {
+                # Fallback: append at end
+                $script:content += "`n$insert"
               }
             }
-            if manifest.get('autoupdate') != desired_autoupdate:
-              manifest['autoupdate'] = desired_autoupdate; updated = True
-            
-            if updated:
-              with open(MANIFEST,'w',encoding='utf-8') as f: json.dump(manifest,f,indent=2,ensure_ascii=False)
-              with open(os.environ['GITHUB_OUTPUT'],'a') as f:
-                f.write('updated=true\n'); f.write(f'old_version={current_version}\n'); f.write(f'new_version={version}\n')
-              print(f'Updated LobeHub {current_version} -> {version} (~{size/1024/1024:.2f} MB)')
-            else:
-              with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
-              print('LobeHub is up to date')
-          except Exception as e:
-            print(f'❌ Error updating LobeHub: {e}')
-            import traceback
-            traceback.print_exc()
-            with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('updated=false\n')
-          EOF
+          }
 
-      - name: Check for Dida365 updates
-        id: check-dida365
+          $apps = @(
+            @{ key = 'aliyundrive'; file = 'bucket/aliyundrive.json' },
+            @{ key = 'miniforge';  file = 'bucket/miniforge.json'  },
+            @{ key = 'lobehub';    file = 'bucket/lobehub.json'    },
+            @{ key = 'eudic';      file = 'bucket/eudic.json'      },
+            @{ key = 'dida365';    file = 'bucket/dida365.json'    }
+          )
+
+          foreach ($a in $apps) {
+            if (Test-Path $a.file) {
+              try {
+                $ver = (Get-Content $a.file -Raw | ConvertFrom-Json).version
+                if ($ver) { Update-VersionRow -app $a.key -version $ver }
+              } catch {
+                Write-Host "Skip $($a.key): failed to read version" -ForegroundColor Yellow
+              }
+            }
+          }
+
+          if ($content -ne $script:content) {
+            Set-Content -Path $path -Value $script:content -Encoding UTF8
+            Write-Host 'README updated with latest versions.' -ForegroundColor Green
+          } else {
+            Write-Host 'README already up to date.'
+          }
+
+      - name: Show changes
+        id: diff
+        shell: pwsh
         run: |
-          python3 << 'EOF'
-          import json
-          import re
-          import requests
-          import hashlib
-          import os
+          $changed = git status --porcelain -- bucket/*.json README.md
+          $changed | Write-Host
+          if (-not [string]::IsNullOrWhiteSpace($changed)) { echo "changed=true" >> $env:GITHUB_OUTPUT } else { echo "changed=false" >> $env:GITHUB_OUTPUT }
 
-          def check_dida365_update():
-              try:
-                  # Read current version from manifest
-                  with open('bucket/dida365.json', 'r', encoding='utf-8') as f:
-                      manifest = json.load(f)
-                  current_version = manifest['version']
-                  current_hash = manifest.get('hash', '')
-
-                  print(f"Current Dida365 version: {current_version}")
-
-                  # Method 1: Try to fetch the Windows download page to get latest version
-                  try:
-                      response = requests.get('https://dida365.com/windows', timeout=30, headers={
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                      })
-                      response.raise_for_status()
-                      print("✅ Successfully accessed Windows download page")
-                      
-                      # 从页面中提取下载链接
-                      download_links = re.findall(r'href="([^"]*getApp/download[^"]*)"', response.text)
-                      print(f"Found download links: {download_links}")
-                      
-                      if download_links:
-                          # 尝试访问 64 位版本的下载链接
-                          for link in download_links:
-                              if 'win64' in link:
-                                  if link.startswith('/'):
-                                      full_url = f"https://dida365.com{link}"
-                                  else:
-                                      full_url = link
-                                  
-                                  print(f"Trying to access download link: {full_url}")
-                                  try:
-                                      download_response = requests.get(full_url, timeout=30, headers={
-                                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                                      }, allow_redirects=True)
-                                      
-                                      print(f"Download response status: {download_response.status_code}")
-                                      print(f"Final URL: {download_response.url}")
-                                      
-                                      # 从重定向的 URL 中提取版本号
-                                      if download_response.status_code == 200:
-                                          final_url = download_response.url
-                                          # 提取版本号：dida_win_setup_release_x64_6350.exe -> 6350
-                                          version_match = re.search(r'dida_win_setup_release_x64_([0-9]+)\.exe', final_url)
-                                          if version_match:
-                                              version_number = version_match.group(1)
-                                              print(f"✅ Found version number from final URL: {version_number}")
-                                              
-                                              # 转换为语义版本格式
-                                              if len(version_number) == 4:  # e.g., 6350 -> 6.3.5.0
-                                                  major = version_number[0]
-                                                  minor = version_number[1]
-                                                  patch = version_number[2]
-                                                  build = version_number[3]
-                                                  latest_version = f"{major}.{minor}.{patch}.{build}"
-                                              else:
-                                                  latest_version = version_number
-                                              
-                                              print(f"✅ Converted to semantic version: {latest_version}")
-                                              break
-                                          else:
-                                              print("❌ Could not extract version number from final URL")
-                                      else:
-                                          print(f"Download request failed with status: {download_response.status_code}")
-                                          
-                                  except Exception as download_error:
-                                      print(f"Error accessing download link: {download_error}")
-                      
-                      if not latest_version:
-                          print("❌ No version found from download links, trying alternative methods")
-                          
-                  except Exception as e:
-                      print(f"❌ Method 1 failed: {e}")
-                      
-                      # Method 2: Try main download page as fallback
-                      try:
-                          response = requests.get('https://dida365.com/download', timeout=30, headers={
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                          })
-                          response.raise_for_status()
-                          print("✅ Successfully accessed main download page")
-                          
-                          # 从主下载页面查找版本信息
-                          version_patterns = [
-                              r'dida_win_setup_release_x64_([0-9]+)\.exe',
-                              r'version["\']?\s*:\s*["\']?([0-9.]+)["\']?',
-                              r'v([0-9.]+)',
-                              r'([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2})'
-                          ]
-                          
-                          latest_version = None
-                          for i, pattern in enumerate(version_patterns):
-                              matches = re.findall(pattern, response.text)
-                              if matches:
-                                  latest_version = matches[0]
-                                  print(f"✅ Found version from main download page using pattern {i+1}: {latest_version}")
-                                  break
-                                  
-                      except Exception as main_error:
-                          print(f"Main download page access failed: {main_error}")
-                          
-                          # Method 3: Try beta download page as last resort
-                          try:
-                              response = requests.get('https://beta.dida365.com/windows?language=zh_CN', timeout=30, headers={
-                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                              })
-                              response.raise_for_status()
-                              print("✅ Successfully accessed beta download page")
-                              
-                              # 从 Beta 页面查找版本信息
-                              version_patterns = [
-                                  r'dida_win_setup_release_x64_([0-9]+)\.exe',
-                                  r'version["\']?\s*:\s*["\']?([0-9.]+)["\']?',
-                                  r'v([0-9.]+)',
-                                  r'([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2})'
-                              ]
-                              
-                              latest_version = None
-                              for i, pattern in enumerate(version_patterns):
-                                  matches = re.findall(pattern, response.text)
-                                  if matches:
-                                      latest_version = matches[0]
-                                      print(f"✅ Found version from beta page using pattern {i+1}: {latest_version}")
-                                      break
-                                      
-                          except Exception as beta_error:
-                              print(f"Beta page access failed: {beta_error}")
-
-                  # Convert latest version to version number for URL construction
-                  if '.' in latest_version:
-                      version_parts = latest_version.split('.')
-                      if len(version_parts) == 4:
-                          version_number = ''.join(version_parts)
-                      else:
-                          version_number = latest_version
-                  else:
-                      version_number = latest_version
-
-                  # Construct download URL using the CDN pattern
-                  download_url = f"https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version_number}.exe"
-                  print(f"Download URL: {download_url}")
-
-                  # Check if version has changed
-                  if latest_version != current_version:
-                      print(f"Version changed: {current_version} -> {latest_version}")
-                      
-                      # Download the file to calculate hash
-                      print("Downloading installer to calculate hash...")
-                      response = requests.get(download_url, timeout=600, stream=True, headers={
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                      })
-                      response.raise_for_status()
-
-                      # Calculate SHA256 hash
-                      sha256_hash = hashlib.sha256()
-                      for chunk in response.iter_content(chunk_size=8192):
-                          sha256_hash.update(chunk)
-                      file_hash = sha256_hash.hexdigest()
-                      print(f"Calculated SHA256: {file_hash}")
-
-                      # Update manifest with new architecture structure
-                      manifest['version'] = latest_version
-                      
-                      # Update architecture.64bit configuration
-                      if 'architecture' not in manifest:
-                          manifest['architecture'] = {}
-                      if '64bit' not in manifest['architecture']:
-                          manifest['architecture']['64bit'] = {}
-                      
-                      manifest['architecture']['64bit']['url'] = download_url + "#dl.7z"
-                      manifest['architecture']['64bit']['hash'] = file_hash
-
-                      # Update autoupdate configuration
-                      if 'autoupdate' in manifest:
-                          if 'architecture' not in manifest['autoupdate']:
-                              manifest['autoupdate']['architecture'] = {}
-                          if '64bit' not in manifest['autoupdate']['architecture']:
-                              manifest['autoupdate']['architecture']['64bit'] = {}
-                          manifest['autoupdate']['architecture']['64bit']['url'] = download_url + "#dl.7z"
-
-                      # Write updated manifest
-                      with open('bucket/dida365.json', 'w', encoding='utf-8') as f:
-                          json.dump(manifest, f, indent=4, ensure_ascii=False)
-
-                      # Set output for GitHub Actions
-                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                          f.write(f"updated=true\n")
-                          f.write(f"old_version={current_version}\n")
-                          f.write(f"new_version={latest_version}\n")
-
-                      print(f"✅ Updated Dida365 from {current_version} to {latest_version}")
-                      return True
-                  else:
-                      print("✅ Dida365 is up to date")
-                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                          f.write(f"updated=false\n")
-                      return False
-
-              except Exception as e:
-                  print(f"❌ Error checking Dida365 updates: {e}")
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write(f"updated=false\n")
-                  return False
-
-          check_dida365_update()
-          EOF
-
-      - name: Update README if version changed
-        if: steps.check-updates.outputs.updated == 'true' || steps.check-miniforge.outputs.updated == 'true' || steps.check-lobehub.outputs.updated == 'true' || steps.check-dida365.outputs.updated == 'true'
+      - name: Commit changes
+        if: steps.diff.outputs.changed == 'true'
+        shell: pwsh
         run: |
-          python3 << 'EOF'
-          import re
-
-          with open('README.md', 'r', encoding='utf-8') as f:
-              content = f.read()
-
-          old_ad = "${{ steps.check-updates.outputs.old_version }}" or None
-          new_ad = "${{ steps.check-updates.outputs.new_version }}" or None
-          if old_ad and new_ad:
-              pattern = r'(\| aliyundrive \| .+ \| )' + re.escape(old_ad) + r'( \|)'
-              replacement = r'\g<1>' + new_ad + r'\g<2>'
-              content = re.sub(pattern, replacement, content)
-
-          old_mf = "${{ steps.check-miniforge.outputs.old_version }}" or None
-          new_mf = "${{ steps.check-miniforge.outputs.new_version }}" or None
-          if old_mf and new_mf:
-              pattern = r'(\| miniforge \| .+ \| )' + re.escape(old_mf) + r'( \|)'
-              replacement = r'\g<1>' + new_mf + r'\g<2>'
-              content = re.sub(pattern, replacement, content)
-
-          old_lh = "${{ steps.check-lobehub.outputs.old_version }}" or None
-          new_lh = "${{ steps.check-lobehub.outputs.new_version }}" or None
-          if old_lh and new_lh:
-              pattern = r'(\| lobehub \| .+ \| )' + re.escape(old_lh) + r'( \|)'
-              replacement = r'\g<1>' + new_lh + r'\g<2>'
-              new_content, n = re.subn(pattern, replacement, content)
-              content = new_content
-              if n == 0:
-                  # 在 Available Apps 表格的最后一行后面插入新行
-                  table_end_pattern = r'(\| [^|]+ \| [^|]+ \| [^|]+ \|\n)(?=\n###|$)'
-                  insert_row = f"| lobehub | LobeChat 桌面客户端 | {new_lh} |\n"
-                  content = re.sub(table_end_pattern, r'\1' + insert_row, content, count=1)
-
-          old_dd = "${{ steps.check-dida365.outputs.old_version }}" or None
-          new_dd = "${{ steps.check-dida365.outputs.new_version }}" or None
-          if old_dd and new_dd:
-              # 更新已存在行
-              pattern = r'(\| dida365 \| .+ \| )' + re.escape(old_dd) + r'( \|)'
-              replacement = r'\g<1>' + new_dd + r'\g<2>'
-              new_content, n = re.subn(pattern, replacement, content)
-              content = new_content
-              # 如果不存在 dida365 行，则在 Available Apps 表格的最后一行后面插入新行
-              if n == 0:
-                  table_end_pattern = r'(\| [^|]+ \| [^|]+ \| [^|]+ \|\n)(?=\n###|$)'
-                  insert_row = f"| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | {new_dd} |\n"
-                  content = re.sub(table_end_pattern, r'\1' + insert_row, content, count=1)
-
-          with open('README.md', 'w', encoding='utf-8') as f:
-              f.write(content)
-          EOF
-
-      - name: Check for manifest changes
-        id: check-changes-manifests
-        run: |
-          # 使用 git status 更可靠地检测更改，同时结合步骤输出兜底
-          CHANGED=$(git status --porcelain -- bucket/*.json README.md || true)
-          if [ -n "$CHANGED" ] || [ "${{ steps.check-updates.outputs.updated }}" = "true" ] || [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ] || [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ] || [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
-            echo "no-changes=false" >> $GITHUB_OUTPUT
-            echo "Detected changes:" && printf "%s\n" "$CHANGED"
-          else
-            echo "no-changes=true" >> $GITHUB_OUTPUT
-            echo "No changes detected"
-          fi
-
-      - name: Commit and push changes directly
-        if: steps.check-changes-manifests.outputs.no-changes == 'false'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # Add all changed files
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bucket/*.json README.md
-          
-          # Create commit message
-          COMMIT_MSG="chore(manifests): auto-update bucket manifests"
-          
-          if [ "${{ steps.check-updates.outputs.updated }}" = "true" ]; then
-            COMMIT_MSG="$COMMIT_MSG - AliyunDrive: ${{ steps.check-updates.outputs.old_version }} -> ${{ steps.check-updates.outputs.new_version }}"
-          fi
-          
-          if [ "${{ steps.check-miniforge.outputs.updated }}" = "true" ]; then
-            COMMIT_MSG="$COMMIT_MSG - Miniforge: ${{ steps.check-miniforge.outputs.old_version }} -> ${{ steps.check-miniforge.outputs.new_version }}"
-          fi
-          
-          if [ "${{ steps.check-lobehub.outputs.updated }}" = "true" ]; then
-            COMMIT_MSG="$COMMIT_MSG - LobeHub: ${{ steps.check-lobehub.outputs.old_version }} -> ${{ steps.check-lobehub.outputs.new_version }}"
-          fi
-          
-          if [ "${{ steps.check-dida365.outputs.updated }}" = "true" ]; then
-            COMMIT_MSG="$COMMIT_MSG - Dida365: ${{ steps.check-dida365.outputs.old_version }} -> ${{ steps.check-dida365.outputs.new_version }}"
-          fi
-          
-          COMMIT_MSG="$COMMIT_MSG - Run: ${{ github.run_id }}"
-          
-          # Commit and push
-          git commit -m "$COMMIT_MSG"
-          git push origin HEAD:main
+          git commit -m "chore: auto-update manifests via Scoop checkver"
 
-
-
-
+      - name: Create pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: chore: auto-update manifests via Scoop checkver
+          title: chore: auto-update manifests
+          body: |
+            Automated updates using Scoop checkver/autoupdate per latest Scoop docs.
+            - Uses checkver to resolve versions and update urls/hashes
+            - Runs daily and on demand
+          branch: ci/auto-update
+          delete-branch: true
