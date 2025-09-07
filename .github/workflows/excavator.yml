@@ -129,18 +129,5 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bucket/*.json README.md
-          git commit -m "chore: auto-update manifests via Scoop checkver"
-
-      - name: Create pull request
-        if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: chore: auto-update manifests via Scoop checkver
-          title: chore: auto-update manifests
-          body: |
-            Automated updates using Scoop checkver/autoupdate per latest Scoop docs.
-            - Uses checkver to resolve versions and update urls/hashes
-            - Runs daily and on demand
-          branch: ci/auto-update
-          delete-branch: true
+          git commit -m "chore: auto-update manifests via Scoop checkver [skip ci]"
+          git push origin HEAD:main
