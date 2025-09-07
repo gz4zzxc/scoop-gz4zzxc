@@ -27,7 +27,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | miniforge | Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器（仅暴露 conda，不暴露 python；安装到 Miniforge3 子目录） | 25.3.1-0 |
 | aliyundrive | 阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品 | 6.8.7 |
 | eudic | 欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能 | 25.7.3 |
-| dida365 | 滴答清单是一款高效的待办事项和时间管理应用，支持多平台同步和团队协作 | 6.3.6.0 |
+| dida365 | 滴答清单 (TickTick) 待办/日历/番茄融合，便携解包 (InnoSetup) | 6.3.6.0 |
 
 ### Miniforge (conda-forge minimal installer)
 
@@ -115,28 +115,36 @@ The Eudic (欧路词典) manifest provides a comprehensive English dictionary so
 The installation includes comprehensive progress feedback and error handling for a smooth setup experience.
 
 
-### Dida365 Installation Notes
+### Dida365 (TickTick) Portable Notes
 
-Dida365 (滴答清单) provides a comprehensive task and time management solution:
+当前 `dida365` 清单使用 InnoSetup 安装包的解包模式（`"innosetup": true`），不直接执行安装程序：
 
-- **Automatic Installation**: The manifest automatically downloads the latest installer from the official website
-- **Silent Installation**: Uses NSIS installer with `/S` parameter for unattended installation
-- **Registry-based Uninstallation**: Automatically detects uninstall information from registry
-- **Multi-platform Sync**: Supports cloud synchronization across devices for seamless task management
-- **Team Collaboration**: Includes features for team task assignment and collaboration
-- **Smart Reminders**: Provides intelligent notification and reminder system for tasks
-- **Cross-platform Support**: Windows, macOS, Android, and iOS apps available
+- **无 UAC**：不写入 `Program Files`，全部文件解包到 Scoop 版本目录。
+- **32/64 位**：同时提供 `type=win` 与 `type=win64` 下载地址，Scoop 自动选择。
+- **纯便携**：不会创建系统卸载项；卸载只移除解包的程序文件。
+- **数据独立**：运行后上游仍可能在 `%APPDATA%` / `%LOCALAPPDATA%` 生成用户数据（暂未做 `persist`，可视需要添加）。
+- **自动版本探测**：`checkver.script` 通过下载安装包读取 `ProductVersion`。
+- **更新简单**：`scoop update dida365` 即可，失败时可先 `scoop cache rm dida365` 再重试。
 
-**Features**:
-- Task creation and management with priorities and due dates
-- Project and label organization
-- Calendar integration and scheduling
-- Comments and attachments support
-- Team collaboration and task sharing
-- Recurring tasks and reminders
-- Time tracking and productivity analytics
+#### 安装
 
-The installation includes comprehensive progress feedback and error handling for a smooth setup experience.
+```powershell
+scoop install gz4zzxc/dida365
+```
+
+#### 可能的后续增强（未实现）
+
+- 持久化用户数据目录（需先确认具体文件夹名）。
+- 在 manifest 中启用 `hash.mode: download` 以减少手动维护。
+- 提供可选启动参数包装（番茄钟/调试等）。
+
+如应用启动失败，请列出目录：
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\scoop\apps\dida365\current" | Select Name
+```
+
+并反馈 issue。
 
 ## Auto-Update
 
@@ -144,7 +152,7 @@ This bucket includes an automated update system that checks for new versions dai
 
 - **Schedule**: Every day at 8:00 AM Beijing Time
 - **Target**: All apps with checkver/autoupdate configurations
-- **Actions**: 
+- **Actions**:
   - **AliyunDrive**: Custom update logic for download restrictions
   - **Other Apps**: Uses official ScoopInstaller/Excavator for automatic updates
   - Automatically updates manifest files, creates releases, and notifies via issues
