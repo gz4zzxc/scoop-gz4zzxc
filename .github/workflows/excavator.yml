@@ -80,6 +80,7 @@ jobs:
               $updated = $true
               return $m.Groups['pre'].Value + $version + $m.Groups['post'].Value
             }, 1)
+            if ($updated) { Write-Host ("Updated README row for '" + $app + "' => " + $version) -ForegroundColor Green }
 
             if (-not $updated) {
               # If the row does not exist, insert a new row after the header row
@@ -87,9 +88,11 @@ jobs:
               $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\n\|[-| ]+\n)"
               if ([regex]::IsMatch($script:content, $tableHeader)) {
                 $script:content = [regex]::Replace($script:content, $tableHeader, { param($m) $m.Groups[1].Value + $insert }, 1)
+                Write-Host ("Inserted README row for '" + $app + "' => " + $version) -ForegroundColor Yellow
               } else {
                 # Fallback: append at end
                 $script:content += "`n$insert"
+                Write-Host ("Appended README row for '" + $app + "' => " + $version) -ForegroundColor Yellow
               }
             }
           }
