@@ -1,5 +1,5 @@
 {
-    "version": "25.7.3",
+    "version": "14.2.1.0",
     "description": "欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
@@ -14,12 +14,10 @@
     "architecture": {
         "64bit": {
             "url": "https://static.frdic.com/pkg/eudic_win.zip",
-            "hash": "cbb10fdd5b5d2d80450055056148ea5bed60d0156fda44a137ed0c172bfbdc35"
+            "hash": "56bc05a5b678f97a32a5a4ad07b55cf53bebeafb7c9e64b931d6244170fa11ce"
         }
     },
-    "pre_install": [
-        "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow"
-    ],
+    "pre_install": "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow",
     "installer": {
         "script": [
             "Write-Host 'Installing 欧路词典...' -ForegroundColor Green",
