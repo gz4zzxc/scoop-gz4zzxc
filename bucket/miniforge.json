@@ -32,7 +32,9 @@
   ],
   "shortcuts": [["Miniforge3\\condabin\\conda.bat", "Conda (Miniforge)"]],
   "checkver": {
-    "github": "conda-forge/miniforge"
+    "url": "https://api.github.com/repos/conda-forge/miniforge/releases/latest",
+    "jsonpath": "$.tag_name",
+    "regex": "([\\d.\\-]+)"
   },
   "autoupdate": {
     "architecture": {
