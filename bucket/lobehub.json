@@ -1,48 +1,48 @@
 {
-  "version": "1.124.4",
-  "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
-  "homepage": "https://github.com/lobehub/lobe-chat",
-  "license": {
-    "identifier": "Apache-2.0",
-    "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE"
-  },
-  "notes": [
-    "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
-    "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
-    "更新时如有进程占用，请先退出托盘后再执行 scoop update lobehub"
-  ],
-  "architecture": {
-    "64bit": {
-      "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.124.4/LobeHub-Beta-1.124.4-setup.exe",
-      "hash": "0db6d9ebbceeca4328fb441f5f22431911c082fed513c29850b6f5ecdc88fe99"
-    }
-  },
-  "installer": {
-    "args": [
-      "/S",
-      "/D=$dir"
-    ]
-  },
-  "bin": [
-    "LobeHub.exe",
-    "lobehub"
-  ],
-  "shortcuts": [
-    [
-      "LobeHub.exe",
-      "LobeChat"
-    ]
-  ],
-  "checkver": {
-    "url": "https://api.github.com/repos/lobehub/lobe-chat/releases/latest",
-    "jsonpath": "$.tag_name",
-    "regex": "v([\\d.]+)"
-  },
-  "autoupdate": {
+    "version": "1.128.7",
+    "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
+    "homepage": "https://github.com/lobehub/lobe-chat",
+    "license": {
+        "identifier": "Apache-2.0",
+        "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE"
+    },
+    "notes": [
+        "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
+        "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
+        "更新时如有进程占用，请先退出托盘后再执行 scoop update lobehub"
+    ],
     "architecture": {
-      "64bit": {
-        "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
-      }
+        "64bit": {
+            "url": "https://github.com/lobehub/lobe-chat/releases/download/v1.128.7/LobeHub-Beta-1.128.7-setup.exe",
+            "hash": "9da972540efcd32dfef662b418989cfa1b5420fbfbd2ba91ce1c87fb9e2335ea"
+        }
+    },
+    "installer": {
+        "args": [
+            "/S",
+            "/D=$dir"
+        ]
+    },
+    "bin": [
+        "LobeHub.exe",
+        "lobehub"
+    ],
+    "shortcuts": [
+        [
+            "LobeHub.exe",
+            "LobeChat"
+        ]
+    ],
+    "checkver": {
+        "url": "https://api.github.com/repos/lobehub/lobe-chat/releases/latest",
+        "jsonpath": "$.tag_name",
+        "regex": "v([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/lobehub/lobe-chat/releases/download/v$version/LobeHub-Beta-$version-setup.exe"
+            }
+        }
     }
-  }
 }
