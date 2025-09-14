@@ -75,8 +75,21 @@
         ]
     },
     "checkver": {
-        "url": "https://www.eudic.net/v4/zh-cn/app/download",
-        "regex": "最新软件版本：\\s*([\\d.]+)"
+        "script": [
+            "$url = 'https://static.frdic.com/pkg/eudic_win.zip'",
+            "$tmp = cache_path 'eudic' '64bit' $url",
+            "Invoke-WebRequest $url -OutFile $tmp -UseBasicParsing",
+            "$dest = Join-Path (Split-Path $tmp) 'eudic_extract'",
+            "if (Test-Path $dest) { try { Remove-Item -Recurse -Force $dest -ErrorAction Stop } catch { } }",
+            "Add-Type -AssemblyName System.IO.Compression.FileSystem",
+            "[System.IO.Compression.ZipFile]::ExtractToDirectory($tmp, $dest)",
+            "$exe = Get-ChildItem -Path $dest -Recurse -Filter 'eudic_win.exe' | Select-Object -First 1",
+            "if (-not $exe) { throw 'eudic_win.exe not found in zip' }",
+            "$ver = (Get-Item $exe.FullName).VersionInfo.ProductVersion",
+            "if (-not $ver) { throw 'Cannot read ProductVersion from eudic_win.exe' }",
+            "$ver"
+        ],
+        "regex": "([\\d.]+)"
     },
     "autoupdate": {
         "architecture": {
