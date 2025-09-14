@@ -68,6 +68,8 @@ jobs:
           $path = 'README.md'
           if (-not (Test-Path $path)) { exit 0 }
           $content = Get-Content $path -Raw -Encoding UTF8
+          # Work on a mutable copy
+          $script:content = $content
 
           function Update-VersionRow([string]$app, [string]$version) {
             $escaped = [regex]::Escape($app)
