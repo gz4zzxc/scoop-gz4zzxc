@@ -71,11 +71,15 @@ jobs:
 
           function Update-VersionRow([string]$app, [string]$version) {
             $escaped = [regex]::Escape($app)
-            $pattern = "(?m)^\|\s*$escaped\s*\|\s.*?\|\s*([^|\n]+)(\s*\|)$"
-            $newContent = $script:content -replace $pattern, ('$1' + $version + '$2')
-            if ($newContent -ne $script:content) {
-              $script:content = $newContent
-            } else {
+            # Capture the whole row, splitting into: pre (up to version cell), ver (the version cell), post (closing pipe)
+            $pattern = "(?m)^(?<pre>\|\s*$escaped\s*\|\s.*?\|\s*)(?<ver>[^|\n]+)(?<post>\s*\|)$"
+            $updated = $false
+            $script:content = [regex]::Replace($script:content, $pattern, { param($m)
+              $updated = $true
+              return $m.Groups['pre'].Value + $version + $m.Groups['post'].Value
+            }, 1)
+
+            if (-not $updated) {
               # If the row does not exist, insert a new row after the header row
               $insert = "| $app | (auto) | $version |`n"
               $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\n\|[-| ]+\n)"
