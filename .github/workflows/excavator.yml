@@ -136,5 +136,35 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bucket/*.json README.md
-          git commit -m "chore: auto-update manifests via Scoop checkver [skip ci]"
+
+          $manifestFiles = git diff --cached --name-only -- 'bucket/*.json'
+          $manifestInfo = @()
+
+          foreach ($file in $manifestFiles) {
+            if (-not (Test-Path $file)) { continue }
+            try {
+              $json = Get-Content $file -Raw | ConvertFrom-Json
+              $app = [IO.Path]::GetFileNameWithoutExtension($file)
+              $version = $json.version
+              if ($app -and $version) {
+                $manifestInfo += [pscustomobject]@{ App = $app; Version = $version }
+              }
+            } catch {
+              Write-Host "Skip commit summary for $file: $_" -ForegroundColor Yellow
+            }
+          }
+
+          if ($manifestInfo.Count -eq 1) {
+            $subject = "chore(bucket): bump $($manifestInfo[0].App) to $($manifestInfo[0].Version) [skip ci]"
+          } elseif ($manifestInfo.Count -gt 1) {
+            $preview = if ($manifestInfo.Count -le 3) { $manifestInfo } else { $manifestInfo[0..2] + '...' }
+            $summary = $preview | ForEach-Object { if ($_ -is [string]) { $_ } else { "$($_.App) $($_.Version)" } }
+            $subject = "chore(bucket): bump manifests ($($summary -join ', ')) [skip ci]"
+          } elseif (git diff --cached --name-only -- 'README.md') {
+            $subject = "docs: refresh README version table [skip ci]"
+          } else {
+            $subject = "chore: sync auto-generated files [skip ci]"
+          }
+
+          git commit -m $subject
           git push origin HEAD:main
