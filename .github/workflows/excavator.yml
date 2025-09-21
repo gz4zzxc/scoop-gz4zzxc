@@ -150,7 +150,7 @@ jobs:
                 $manifestInfo += [pscustomobject]@{ App = $app; Version = $version }
               }
             } catch {
-              Write-Host "Skip commit summary for $file: $_" -ForegroundColor Yellow
+              Write-Host "Skip commit summary for ${file}: $($_)" -ForegroundColor Yellow
             }
           }
 
@@ -168,3 +168,4 @@ jobs:
 
           git commit -m $subject
           git push origin HEAD:main
+
