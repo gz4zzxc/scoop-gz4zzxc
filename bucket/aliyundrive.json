@@ -1,6 +1,6 @@
 {
     "version": "6.8.7",
-    "description": "阿里云盘是一款速度快、不打扰、够安全、易于分享的网盘，由阿里巴巴集团出品",
+    "description": "阿里云盘官方桌面客户端",
     "homepage": "https://www.aliyundrive.com/",
     "license": "Proprietary",
     "notes": [
@@ -27,7 +27,12 @@
         "@('uninst.exe.nsis', '$PLUGINSDIR') | ForEach-Object { if (Test-Path \"$dir\\$_\") { Remove-Item \"$dir\\$_\" -Recurse -Force -ErrorAction SilentlyContinue } }"
     ],
     "bin": "aDrive.exe",
-    "shortcuts": [["aDrive.exe", "阿里云盘"]],
+    "shortcuts": [
+        [
+            "aDrive.exe",
+            "阿里云盘"
+        ]
+    ],
     "post_install": [
         "Write-Host '阿里云盘已安装完成！' -ForegroundColor Cyan",
         "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",

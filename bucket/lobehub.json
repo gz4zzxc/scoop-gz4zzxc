@@ -1,6 +1,6 @@
 {
     "version": "1.142.8",
-    "description": "LobeChat 是一个开源的多模型 AI 聊天与增强工具，支持多模型、本地/云部署、插件体系与多端同步 (Desktop Electron 版)",
+    "description": "开源的多模型 AI 聊天与增强工具 (Desktop Electron 版)",
     "homepage": "https://github.com/lobehub/lobe-chat",
     "license": {
         "identifier": "Apache-2.0",

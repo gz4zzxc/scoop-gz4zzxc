@@ -1,6 +1,6 @@
 {
     "version": "14.2.1.0",
-    "description": "欧路词典是一款权威的英语词典软件，为您提供单词真人发音、英语翻译、跨软件取词、文章批改、语法错误纠正、划词搜索、英语扩充词库、英语背单词等功能",
+    "description": "权威英语词典软件，支持屏幕取词与真人发音",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
     "notes": [
@@ -56,6 +56,7 @@
         "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
     ],
     "uninstaller": {
+        "##": "Checks for system-level uninstaller in case the app registered itself or was previously installed.",
         "script": [
             "Write-Host 'Uninstalling 欧路词典...' -ForegroundColor Yellow",
             "$uninstallPath = Get-ChildItem \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\" | Get-ItemProperty | Where-Object { $_.DisplayName -like '*欧路词典*' -or $_.DisplayName -like '*Eudic*' } | Select-Object -ExpandProperty UninstallString",
