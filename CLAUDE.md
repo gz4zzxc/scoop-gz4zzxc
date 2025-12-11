@@ -1,117 +1,72 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Project Overview
 
-This is a custom Scoop bucket for managing Windows applications through the Scoop package manager. The repository contains JSON manifests for various Chinese and international applications with automated update capabilities.
+This is a custom [Scoop](https://scoop.sh/) bucket for managing specific Windows applications. It focuses on providing "clean" (portable/unpacked) versions of apps that are often hard to find or problematic in official buckets.
+
+**Tech Stack**:
+-   **Manifests**: JSON
+-   **Scripts**: PowerShell (Core) 7+
+-   **Automation**: GitHub Actions (Windows Runner)
 
 ## Common Commands
 
 ### Testing Manifests
-```bash
-# Validate JSON syntax of all manifests
-python3 -m json.tool bucket/*.json
 
-# Test installation of a specific app (requires Scoop on Windows)
-scoop install bucket/app-name.json
+Only possible on Windows with Scoop installed.
 
-# Check manifest syntax using Scoop's built-in validation
-scoop checkver bucket/app-name.json
+```powershell
+# Install/Reinstall a specific app from local source
+scoop install bucket\app-name.json
+
+# Uninstall
+scoop uninstall app-name
+
+# Debugging installation scripts
+scoop install bucket\app-name.json -g # -g shows global script output
 ```
 
-### Running Updates
-```bash
-# The automated update system runs via GitHub Actions daily
-# Manual testing of update logic:
-python3 .github/workflows/excavator.yml  # Run update checks locally
-```
+### Validating Changes
 
-### Adding New Applications
-1. Create manifest file in `bucket/` directory following Scoop JSON schema
-2. Include required fields: `version`, `description`, `homepage`, `architecture`, `bin`
-3. Add `checkver` and `autoupdate` configurations for automatic updates
-4. Test the manifest with `scoop install` before submitting PR
+```powershell
+# Use Scoop's native checkver to verify regex and autoupdate logic
+# (Requires checkver.ps1 in path or via scoop-search)
+./bin/checkver.ps1 bucket/app-name.json -u
+```
 
 ## Architecture
 
 ### Automated Update System
-The project features a sophisticated automated update system (`.github/workflows/excavator.yml`) that:
+-   **Workflow**: `.github/workflows/excavator.yml`
+-   **Mechanism**: Runs `checkver * -u` on a daily schedule using Scoop's native infrastructure.
+-   **Logic**:
+    1.  Downloads latest version information (via API, Regex, or Script).
+    2.  Updates `version`, `hash`, and `autoupdate` fields in manifests.
+    3.  Updates the `README.md` version table.
+    4.  Commits changes back to `main`.
 
-- **Runs daily** at 8:00 AM Beijing Time
-- **Handles complex download scenarios** with custom User-Agent headers and fallback mechanisms
-- **Supports multiple update strategies**:
-  - GitHub API releases (LobeChat, Miniforge)
-  - Web scraping with regex extraction (AliyunDrive, Dida365)
-  - CDN URL verification and fallback testing
+### Manifest Patterns
 
-### Manifest Structure
-All manifests follow the modern Scoop architecture format:
+#### 1. AliyunDrive (CDNs with Anti-Leech)
+AliyunDrive's CDN blocks generic User-Agents.
+-   **Fix**: `checkver` block MUST include `"useragent": "Mozilla/5.0..."`.
+-   **Installation**: `pre_install` script manually downloads the installer using `Invoke-WebRequest -UserAgent ...` to bypass 403 errors.
 
-```json
-{
-  "version": "x.y.z",
-  "architecture": {
-    "64bit": {
-      "url": "...",
-      "hash": "..."
-    }
-  },
-  "autoupdate": {
-    "architecture": {
-      "64bit": {
-        "url": "..."
-      }
-    }
-  }
-}
-```
+#### 2. Dida365 (Checkver Script)
+Dida365 (TickTick China) doesn't have a simple version API.
+-   **Checkver**: Uses a PowerShell block (`script`) to download the executable header and read `ProductVersion`.
+-   **Installation**: Uses `"innosetup": true` to unpack the installer without running it (Portable Mode).
 
-### Special Handling by Application
+#### 3. Miniforge (Custom Shim)
+Designed to coexist with other Python managers (uv, system python).
+-   **Design**: Only exposes `conda` shim.
+-   **Safety**: Explicitly avoids creating `python.exe` shim (`bin` field is restricted to `conda.bat`).
 
-**AliyunDrive**: 
-- Requires custom User-Agent headers to bypass CDN restrictions
-- Implements multi-step fallback download verification
-- URL pattern: `https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-{version}.exe`
+## Development Guidelines
 
-**Miniforge**:
-- Custom conda-only installation (excludes python.exe shim)
-- Installs to `Miniforge3` subdirectory
-- GitHub API-based version checking with SHA256 verification
-
-**Dida365**:
-- Converts version numbers between semantic format (6.3.5.0) and numeric format (6350)
-- Handles UAC prompts during installation with NSIS silent install
-- CDN URL pattern: `https://cdn.dida365.cn/download/win64/dida_win_setup_release_x64_{version}.exe`
-
-**LobeChat**:
-- Uses GitHub releases with complex asset name patterns
-- Falls back to parsing `latest.yml` when exact asset names change
-- Electron-builder NSIS installer with silent install support
-
-## Development Notes
-
-### Manifest Validation
-- All manifests must pass JSON syntax validation
-- SHA256 hashes are required for security integrity
-- URLs must be accessible and return correct installers
-- `architecture.64bit` structure is preferred over root-level fields
-
-### Update Logic Patterns
-- **GitHub Releases**: Use `github: user/repo` in checkver
-- **Web Scraping**: Implement fallback mechanisms for CDN restrictions
-- **Version Conversion**: Handle semantic vs. custom version formats
-- **Download Verification**: Always verify URLs exist before updating manifests
-
-### Testing Guidelines
-- Test installations on Windows systems with Scoop installed
-- Verify updates work by running the automated update logic
-- Check that shortcuts and bin entries work correctly
-- Ensure uninstallation removes all components cleanly
-
-### Error Handling
-The automated system includes comprehensive error handling:
-- Fallback download methods when primary fails
-- Version number extraction from multiple sources
-- URL accessibility verification before committing changes
-- Graceful handling of missing or malformed assets
+1.  **JSON Format**: Keep standard Scoop formatting (4 space indent).
+2.  **PowerShell Compatibility**: Scripts should run on PowerShell Core (pwsh) as that's what the GitHub Action uses.
+3.  **Hash**: Always use SHA256. For autoupdate, prefer `hash.mode: download` if the vendor doesn't provide a hash file.
+4.  **No "Sleep"**: Avoid using `Start-Sleep` in install scripts; check for process termination or file locks instead.
