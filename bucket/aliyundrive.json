@@ -42,7 +42,14 @@
     "post_install": [
         "Write-Host '阿里云盘已安装完成！' -ForegroundColor Cyan",
         "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",
-        "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow"
+        "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow",
+        "$wsh = New-Object -ComObject WScript.Shell",
+        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\")",
+        "$lnk.TargetPath = \"$dir\\aDrive.exe\"",
+        "$lnk.Save()"
+    ],
+    "pre_uninstall": [
+        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\" -Force }"
     ],
     "checkver": {
         "url": "https://www.aliyundrive.com/download",
