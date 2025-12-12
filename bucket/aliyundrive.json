@@ -1,5 +1,6 @@
 {
     "version": "6.9.1",
+    "useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "description": "阿里云盘官方桌面客户端",
     "homepage": "https://www.aliyundrive.com/",
     "license": "Proprietary",
@@ -16,12 +17,7 @@
         }
     },
     "pre_install": [
-        "# 使用自定义 UA 下载并解包，解决 CDN 对默认 UA 的限制",
-        "$downloadUrl = \"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe\"",
-        "$outputFile = \"$dir\\aDrive-$version.exe\"",
-        "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'",
-        "Invoke-WebRequest -Uri $downloadUrl -UserAgent $userAgent -OutFile $outputFile -UseBasicParsing",
-        "Expand-7ZipArchive $outputFile $dir -Removal",
+        "Expand-7ZipArchive \"$dir\\aDrive-$version.exe\" \"$dir\" -Removal",
         "if (Test-Path \"$dir\\app-64.7z\") { Expand-7ZipArchive \"$dir\\app-64.7z\" \"$dir\" -Removal }",
         "if (Test-Path \"$dir\\app.7z\") { Expand-7ZipArchive \"$dir\\app.7z\" \"$dir\" -Removal }",
         "@('uninst.exe.nsis', '$PLUGINSDIR') | ForEach-Object { if (Test-Path \"$dir\\$_\") { Remove-Item \"$dir\\$_\" -Recurse -Force -ErrorAction SilentlyContinue } }"
