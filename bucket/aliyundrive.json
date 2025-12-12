@@ -12,14 +12,24 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-6.9.1.exe",
-            "hash": "cc40289de6c35821214c816b8a1101c3ada822f05c7da3b770ae432067eea76a"
+            "url": "https://cdn.jsdelivr.net/gh/gz4zzxc/scoop-gz4zzxc@main/LICENSE#/dl-bypass",
+            "hash": "6B0382B16279F26FF69014300541967A356A666EB0B91B422F6862F6B7DAD17E"
         }
     },
     "pre_install": [
-        "Expand-7ZipArchive \"$dir\\aDrive-$version.exe\" \"$dir\" -Removal",
-        "if (Test-Path \"$dir\\app-64.7z\") { Expand-7ZipArchive \"$dir\\app-64.7z\" \"$dir\" -Removal }",
-        "if (Test-Path \"$dir\\app.7z\") { Expand-7ZipArchive \"$dir\\app.7z\" \"$dir\" -Removal }",
+        "if (Test-Path \"$dir\\LICENSE\") { Remove-Item \"$dir\\LICENSE\" -Force }",
+        "$downloadUrl = \"https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$version.exe\"",
+        "$outputFile = \"$dir\\aDrive-$version.exe\"",
+        "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'",
+        "Invoke-WebRequest -Uri $downloadUrl -UserAgent $userAgent -OutFile $outputFile -UseBasicParsing",
+        "$expectedHash = \"cc40289de6c35821214c816b8a1101c3ada822f05c7da3b770ae432067eea76a\"",
+        "$actualHash = (Get-FileHash -Path $outputFile -Algorithm SHA256).Hash",
+        "if ($actualHash -ne $expectedHash) { throw \"Hash mismatch! Expected: $expectedHash, Actual: $actualHash\" }",
+        "& 7z x \"$outputFile\" -o\"$dir\" -y",
+        "Remove-Item \"$outputFile\" -Force",
+        "if (-not (Test-Path \"$dir\\aDrive.exe\")) { throw \"Extraction Failed: aDrive.exe not found\" }",
+        "if (Test-Path \"$dir\\app-64.7z\") { & 7z x \"$dir\\app-64.7z\" -o\"$dir\" -y; Remove-Item \"$dir\\app-64.7z\" -Force }",
+        "if (Test-Path \"$dir\\app.7z\") { & 7z x \"$dir\\app.7z\" -o\"$dir\" -y; Remove-Item \"$dir\\app.7z\" -Force }",
         "@('uninst.exe.nsis', '$PLUGINSDIR') | ForEach-Object { if (Test-Path \"$dir\\$_\") { Remove-Item \"$dir\\$_\" -Recurse -Force -ErrorAction SilentlyContinue } }"
     ],
     "bin": "aDrive.exe",
