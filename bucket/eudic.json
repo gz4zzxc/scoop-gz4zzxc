@@ -1,5 +1,5 @@
 {
-    "version": "14.2.1.0",
+    "version": "25.8.0.0",
     "description": "权威英语词典软件，支持屏幕取词与真人发音",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
@@ -14,7 +14,7 @@
     "architecture": {
         "64bit": {
             "url": "https://static.frdic.com/pkg/eudic_win.zip",
-            "hash": "56bc05a5b678f97a32a5a4ad07b55cf53bebeafb7c9e64b931d6244170fa11ce"
+            "hash": "71351d9cef9db77e5063a2928678b6b7755b3af9dac61c176b66675aee29dfb2"
         }
     },
     "pre_install": "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow",
