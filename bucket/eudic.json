@@ -53,7 +53,14 @@
         "Write-Host '欧路词典已安装完成！' -ForegroundColor Cyan",
         "Write-Host '您可以在开始菜单或桌面找到欧路词典图标' -ForegroundColor Yellow",
         "Write-Host '首次使用建议登录账号以同步学习记录' -ForegroundColor Yellow",
-        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
+        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow",
+        "$wsh = New-Object -ComObject WScript.Shell",
+        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\")",
+        "$lnk.TargetPath = \"$dir\\eudic.exe\"",
+        "$lnk.Save()"
+    ],
+    "pre_uninstall": [
+        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force }"
     ],
     "uninstaller": {
         "##": "Checks for system-level uninstaller in case the app registered itself or was previously installed.",
