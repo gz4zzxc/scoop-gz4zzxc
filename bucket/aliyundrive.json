@@ -54,7 +54,7 @@
         "}"
     ],
     "pre_uninstall": [
-        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\" -Force }"
+        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\" -Force -ErrorAction SilentlyContinue }"
     ],
     "checkver": {
         "url": "https://www.aliyundrive.com/download",

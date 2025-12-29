@@ -65,7 +65,7 @@
         "}"
     ],
     "pre_uninstall": [
-        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force }"
+        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force -ErrorAction SilentlyContinue }"
     ],
     "uninstaller": {
         "##": "Checks for system-level uninstaller in case the app registered itself or was previously installed.",
