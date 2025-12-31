@@ -54,15 +54,10 @@
         "Write-Host '您可以在开始菜单或桌面找到欧路词典图标' -ForegroundColor Yellow",
         "Write-Host '首次使用建议登录账号以同步学习记录' -ForegroundColor Yellow",
         "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow",
-        "# Only create desktop shortcut in PowerShell 5.1 (pwsh doesn't support COM objects)",
-        "if ($PSVersionTable.PSVersion.Major -lt 6) {",
-        "    $wsh = New-Object -ComObject WScript.Shell",
-        "    $lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\")",
-        "    $lnk.TargetPath = \"$dir\\eudic.exe\"",
-        "    $lnk.Save()",
-        "} else {",
-        "    Write-Host 'Desktop shortcut creation skipped: PowerShell 7+ detected (COM objects not supported)' -ForegroundColor DarkYellow",
-        "}"
+        "$wsh = New-Object -ComObject WScript.Shell",
+        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\")",
+        "$lnk.TargetPath = \"$dir\\eudic.exe\"",
+        "$lnk.Save()"
     ],
     "pre_uninstall": [
         "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force -ErrorAction SilentlyContinue }"

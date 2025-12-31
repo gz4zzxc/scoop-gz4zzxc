@@ -43,15 +43,10 @@
         "Write-Host '阿里云盘已安装完成！' -ForegroundColor Cyan",
         "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",
         "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow",
-        "# Only create desktop shortcut in PowerShell 5.1 (pwsh doesn't support COM objects)",
-        "if ($PSVersionTable.PSVersion.Major -lt 6) {",
-        "    $wsh = New-Object -ComObject WScript.Shell",
-        "    $lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\")",
-        "    $lnk.TargetPath = \"$dir\\aDrive.exe\"",
-        "    $lnk.Save()",
-        "} else {",
-        "    Write-Host 'Desktop shortcut creation skipped: PowerShell 7+ detected (COM objects not supported)' -ForegroundColor DarkYellow",
-        "}"
+        "$wsh = New-Object -ComObject WScript.Shell",
+        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\")",
+        "$lnk.TargetPath = \"$dir\\aDrive.exe\"",
+        "$lnk.Save()"
     ],
     "pre_uninstall": [
         "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\" -Force -ErrorAction SilentlyContinue }"
