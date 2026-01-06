@@ -88,7 +88,6 @@ scoop install gz4zzxc/aliyundrive
 # Install 欧路词典
 scoop install gz4zzxc/eudic
 
-
 # Install 滴答清单
 scoop install gz4zzxc/dida365
 ```
@@ -113,7 +112,6 @@ The Eudic (欧路词典) manifest provides a comprehensive English dictionary so
 - **Multi-platform Sync**: Supports cloud synchronization of learning records across devices
 
 The installation includes comprehensive progress feedback and error handling for a smooth setup experience.
-
 
 ### Dida365 (TickTick) Portable Notes
 
@@ -158,6 +156,7 @@ This bucket uses Scoop’s native checkver/autoupdate to refresh manifests and t
   - Commits and pushes changes directly to `main` with `[skip ci]` to avoid loop
 
 Notes:
+
 - The workflow runs on `windows-latest` and installs Scoop transiently to use `checkver.ps1` (per Scoop docs)
 - If upstream has no new release, the run completes with “No changes” and no PR is created
 

@@ -70,11 +70,13 @@ jobs:
           $content = Get-Content $path -Raw -Encoding UTF8
           # Work on a mutable copy
           $script:content = $content
+          # Preserve existing newline style (LF vs CRLF)
+          $nl = if ($content -match "\r\n") { "`r`n" } else { "`n" }
 
           function Update-VersionRow([string]$app, [string]$version) {
             $escaped = [regex]::Escape($app)
             # Capture the whole row, splitting into: pre (up to version cell), ver (the version cell), post (closing pipe)
-            $pattern = "(?m)^(?<pre>\|\s*$escaped\s*\|\s.*?\|\s*)(?<ver>[^|\n]+)(?<post>\s*\|)$"
+            $pattern = "(?m)^(?<pre>\|\s*$escaped\s*\|\s.*?\|\s*)(?<ver>[^|\r\n]+)(?<post>\s*\|)$"
             $updated = $false
             $script:content = [regex]::Replace($script:content, $pattern, { param($m)
               $updated = $true
@@ -84,13 +86,14 @@ jobs:
 
             if (-not $updated) {
               # If the row does not exist, insert a new row after the header row
-              $insert = "| $app | (auto) | $version |`n"
-              $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\n\|[-| ]+\n)"
+              $insert = "| $app | (auto) | $version |$nl"
+              $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\r?\n\|[-| ]+\r?\n)"
               if ([regex]::IsMatch($script:content, $tableHeader)) {
                 $script:content = [regex]::Replace($script:content, $tableHeader, { param($m) $m.Groups[1].Value + $insert }, 1)
               } else {
                 # Fallback: append at end
-                $script:content += "`n$insert"
+                if (-not $script:content.EndsWith("`n")) { $script:content += $nl }
+                $script:content += $insert
               }
             }
           }
@@ -168,4 +171,3 @@ jobs:
 
           git commit -m $subject
           git push origin HEAD:main
-
