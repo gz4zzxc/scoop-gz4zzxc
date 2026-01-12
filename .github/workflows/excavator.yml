@@ -52,6 +52,8 @@ jobs:
 
       - name: Run checkver for all manifests
         shell: pwsh
+        env:
+          THROW_ERROR: '0'
         run: |
           $checkver = "$env:USERPROFILE\scoop\apps\scoop\current\bin\checkver.ps1"
           if (-not (Test-Path $checkver)) {
