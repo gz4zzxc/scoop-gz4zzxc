@@ -19,9 +19,6 @@ jobs:
     concurrency:
       group: update-manifests-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      # Allow Scoop checkver to use GitHub API at higher rate limits
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
