@@ -76,11 +76,11 @@ jobs:
           function Update-VersionRow([string]$app, [string]$version) {
             $escaped = [regex]::Escape($app)
             # Capture the whole row, splitting into: pre (up to version cell), ver (the version cell), post (closing pipe)
-            $pattern = "(?m)^(?<pre>\|\s*$escaped\s*\|\s.*?\|\s*)(?<ver>[^|\r\n]+)(?<post>\s*\|)$"
+            $pattern = "(?m)^(?<pre>\|\s*$escaped\s*\|.*?\|\s*)(?<ver>[^|\r\n]+?)(?<post>\s*\|)$"
             $updated = $false
-            $script:content = [regex]::Replace($script:content, $pattern, { param($m)
+            $script:content = [regex]::Replace($script:content, $pattern, {
               $updated = $true
-              return $m.Groups['pre'].Value + $version + $m.Groups['post'].Value
+              return $args[0].Groups['pre'].Value + $version + $args[0].Groups['post'].Value
             }, 1)
             # replacement done when $updated is true
 
@@ -89,7 +89,9 @@ jobs:
               $insert = "| $app | (auto) | $version |$nl"
               $tableHeader = "(?ms)(\|\s*App\s*\|.*?\|\s*Version\s*\|\s*\r?\n\|[-| ]+\r?\n)"
               if ([regex]::IsMatch($script:content, $tableHeader)) {
-                $script:content = [regex]::Replace($script:content, $tableHeader, { param($m) $m.Groups[1].Value + $insert }, 1)
+                $script:content = [regex]::Replace($script:content, $tableHeader, {
+                  $args[0].Groups[1].Value + $insert
+                }, 1)
               } else {
                 # Fallback: append at end
                 if (-not $script:content.EndsWith("`n")) { $script:content += $nl }
