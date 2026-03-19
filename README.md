@@ -31,18 +31,26 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 
-本仓库的 `miniforge` 清单是为个人需求定制的版本，具备以下特性：
+本仓库提供的 `miniforge` 清单采用较保守的集成方式，适合希望将 Conda 与系统 Python、UV 或自定义 shell 配置分开管理的用户。
 
-- **只暴露 `conda`，不暴露 `python`**
-  - `bin` 仅导出 `Miniforge3\\condabin\\conda.bat`
-  - 不会创建 `python.exe` 的 shim，避免覆盖系统或 UV 管理的 Python
-- **安装到子目录 `Miniforge3`**
-  - 安装路径：`~\\scoop\\apps\\miniforge\\<version>\\Miniforge3`
-  - 安装脚本会在应用目录内清理旧的 `Miniforge3` 子目录，避免因目录非空而失败（不会触碰 `%USERPROFILE%\\.conda\\envs` 等用户环境目录）
-- **启动提示与建议**
-  - 安装完成后建议执行：`conda init` 初始化当前 Shell
-  - 如果不想自动激活 base：`conda config --set auto_activate_base false`
-  - 推荐设置通道优先级：`conda config --set channel_priority strict`
+- **默认行为**
+  - 仅导出 `Miniforge3\\condabin\\conda.bat`，不创建 `python.exe` shim
+  - 不自动修改 PATH，不自动改写 shell profile
+  - 安装目录为 `~\\scoop\\apps\\miniforge\\<version>\\Miniforge3`
+- **升级边界**
+  - Scoop 升级会替换 `~\\scoop\\apps\\miniforge\\<version>\\Miniforge3` 下的安装内容
+  - 不会修改用户级 `~/.condarc`、`%USERPROFILE%\\.conda` 或你的 shell profile
+  - 安装脚本只会清理版本目录内旧的 `Miniforge3` 子目录，以避免目录非空导致安装失败
+- **Shell 集成说明**
+  - 如果你只使用 `conda run`、`conda create`、`conda install` 等命令，通常不需要执行 `conda init`
+  - 只有当你需要 `conda activate` 直接影响当前 shell 时，才需要按需执行 `conda init <shell>`
+  - Bash / Zsh / Fish 等常规 shell 建议先运行 `conda init --dry-run <shell>`，确认将修改哪些文件
+  - PowerShell 用户，尤其是已使用 Starship、oh-my-posh 或自定义 profile 的用户，请不要直接执行 `conda init powershell`；建议先查看 `conda init --dry-run powershell`
+  - 如果误执行了 `conda init powershell`，可先用 `conda init --reverse powershell` 查看或回退上次初始化影响
+- **建议配置**
+  - 如不希望自动激活 `base`：`conda config --set auto_activate_base false`
+  - 如使用 Starship 或其他 prompt 框架显示 Conda 环境名：`conda config --set changeps1 false`
+  - 如希望通道解析更严格：`conda config --set channel_priority strict`
 
 #### 安装
 

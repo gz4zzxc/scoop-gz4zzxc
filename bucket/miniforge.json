@@ -4,11 +4,13 @@
     "homepage": "https://github.com/conda-forge/miniforge",
     "license": "BSD-3-Clause",
     "notes": [
-        "安装完成后，建议执行：conda init 来初始化当前 Shell 环境；如不希望自动激活 base，可执行：conda config --set auto_activate_base false",
-        "本清单为「仅暴露 conda、不暴露 python」的定制方案：bin 只导出 Miniforge3\\condabin\\conda.bat，不会创建 python.exe 的 shim，以避免覆盖系统（或 UV 管理的）Python",
-        "本清单不会修改系统 PATH，Scoop 通过 shim 提供可执行文件；安装路径为 ~\\scoop\\apps\\miniforge\\<version>\\Miniforge3",
-        "安装脚本在应用安装目录内清理旧的 Miniforge3 子目录（若存在）以避免『目标目录非空』导致的安装失败；不会清理用户自己的 conda 环境目录（如 %USERPROFILE%\\.conda\\envs）",
-        "若需要在命令行直接使用 Miniforge 的 python：可先 conda activate <env>，或使用 conda run -n <env> python；如需暴露 python.exe 的 shim，可在本清单的 bin 中加入 'Miniforge3\\\\python.exe' 后重新安装"
+        "本清单仅导出 Miniforge3\\condabin\\conda.bat，不创建 python.exe shim，也不会自动修改 PATH 或 shell profile；安装目录为 ~\\scoop\\apps\\miniforge\\<version>\\Miniforge3",
+        "如果你只使用 conda run、conda create、conda install 等命令，通常不需要执行 conda init",
+        "如需让 conda activate 直接作用于当前 shell，请按需执行 conda init <shell>；执行前建议先用 conda init --dry-run <shell> 查看将修改哪些文件",
+        "PowerShell 用户，尤其是已使用 Starship、oh-my-posh 或自定义 profile 的用户，请不要直接执行 conda init powershell；建议先查看 conda init --dry-run powershell",
+        "Scoop 升级会替换 ~\\scoop\\apps\\miniforge\\<version>\\Miniforge3 下的安装内容，但不会修改用户级 ~/.condarc、%USERPROFILE%\\.conda 或 shell profile",
+        "如不希望自动激活 base，可执行 conda config --set auto_activate_base false；如使用第三方 prompt 显示环境名，可执行 conda config --set changeps1 false；如需更严格的通道解析，可执行 conda config --set channel_priority strict",
+        "如需在命令行直接使用 Miniforge 的 python，可先 conda activate <env>，或使用 conda run -n <env> python；如确需暴露 python.exe shim，可在本清单的 bin 中加入 'Miniforge3\\\\python.exe' 后重新安装"
     ],
     "architecture": {
         "64bit": {
