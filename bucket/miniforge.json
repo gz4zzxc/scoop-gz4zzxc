@@ -1,5 +1,5 @@
 {
-    "version": "26.1.1-2",
+    "version": "26.1.1-3",
     "description": "Miniforge：由 conda-forge 社区维护的精简版 Conda 安装器，默认使用 conda-forge 源",
     "homepage": "https://github.com/conda-forge/miniforge",
     "license": "BSD-3-Clause",
@@ -14,8 +14,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/conda-forge/miniforge/releases/download/26.1.1-2/Miniforge3-26.1.1-2-Windows-x86_64.exe",
-            "hash": "eac38a51bcd68eb7a211c7a5673b6aee9439db657e54749a02fbf919bd9c6708"
+            "url": "https://github.com/conda-forge/miniforge/releases/download/26.1.1-3/Miniforge3-26.1.1-3-Windows-x86_64.exe",
+            "hash": "4d987034d25684fbed0fe7c691227067e37f7443061e2732c3b726c0c5dd45c2"
         }
     },
     "installer": {
