@@ -1,5 +1,5 @@
 {
-    "version": "25.8.0.0",
+    "version": "14.2.1.0",
     "description": "权威英语词典软件，支持屏幕取词与真人发音",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
@@ -14,7 +14,7 @@
     "architecture": {
         "64bit": {
             "url": "https://static.frdic.com/pkg/eudic_win.zip",
-            "hash": "71351d9cef9db77e5063a2928678b6b7755b3af9dac61c176b66675aee29dfb2"
+            "hash": "56bc05a5b678f97a32a5a4ad07b55cf53bebeafb7c9e64b931d6244170fa11ce"
         }
     },
     "pre_install": "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow",
@@ -59,9 +59,7 @@
         "$lnk.TargetPath = \"$dir\\eudic.exe\"",
         "$lnk.Save()"
     ],
-    "pre_uninstall": [
-        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force -ErrorAction SilentlyContinue }"
-    ],
+    "pre_uninstall": "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force -ErrorAction SilentlyContinue }",
     "uninstaller": {
         "##": "Checks for system-level uninstaller in case the app registered itself or was previously installed.",
         "script": [
