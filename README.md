@@ -27,7 +27,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | miniforge | Conda-forge 精简版（仅 conda） | 25.11.0-1 |
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
 | eudic | 欧路词典：英语词典软件 | 14.2.1.0 |
-| dida365 | 滴答清单：待办/日历/番茄钟 | 6.4.2.0 |
+| dida365 | 滴答清单：待办/日历/番茄钟 | 8.0.4.0 |
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 
