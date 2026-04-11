@@ -27,10 +27,7 @@
             "Remove-Item $installer -Force -ErrorAction SilentlyContinue"
         ]
     },
-    "bin": [
-        "motrix-next.exe",
-        "motrix-next"
-    ],
+    "bin": "motrix-next.exe",
     "shortcuts": [
         [
             "motrix-next.exe",
