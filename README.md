@@ -28,6 +28,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
 | eudic | 欧路词典：英语词典软件 | 14.2.1.0 |
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.0.4.0 |
+| motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.6.9 |
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 

@@ -1,0 +1,64 @@
+{
+    "version": "3.6.9",
+    "description": "Motrix 的现代重写版下载管理器，基于 Tauri 与 aria2",
+    "homepage": "https://github.com/AnInsomniacy/motrix-next",
+    "license": {
+        "identifier": "MIT",
+        "url": "https://github.com/AnInsomniacy/motrix-next/blob/main/LICENSE"
+    },
+    "notes": [
+        "使用官方 Windows NSIS 安装器静默安装到 Scoop 目录；上游安装器声明了提升权限，因此安装或卸载时会弹出 UAC，请选择「是」继续",
+        "上游未进行代码签名，首次下载或运行时可能被浏览器或杀毒软件提示风险",
+        "更新时如提示文件占用，请先退出 Motrix Next 托盘与主程序后再执行 scoop update motrix-next"
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/AnInsomniacy/motrix-next/releases/download/v3.6.9/MotrixNext_3.6.9_x64-setup.exe",
+            "hash": "61e49765da94e8a02f28f79cf526f9bcdb8fbaf3b7fc19a3dfa93a806712a91d"
+        }
+    },
+    "installer": {
+        "script": [
+            "$installer = Get-ChildItem -Path $dir -Filter 'MotrixNext_*_x64-setup.exe' -File | Select-Object -First 1 -ExpandProperty FullName",
+            "if (-not (Test-Path $installer)) { throw '未找到 Motrix Next 安装器文件' }",
+            "$arguments = \"/S /CurrentUser /D=$dir\"",
+            "$process = Start-Process -FilePath $installer -ArgumentList $arguments -Verb RunAs -Wait -PassThru",
+            "if ($process.ExitCode -ne 0) { throw \"Motrix Next 安装器退出码异常: $($process.ExitCode)\" }",
+            "Remove-Item $installer -Force -ErrorAction SilentlyContinue"
+        ]
+    },
+    "uninstaller": {
+        "script": [
+            "$uninstaller = Join-Path $dir 'uninstall.exe'",
+            "if (Test-Path $uninstaller) {",
+            "    $process = Start-Process -FilePath $uninstaller -ArgumentList '/S /CurrentUser' -Verb RunAs -Wait -PassThru",
+            "    if ($process.ExitCode -ne 0) { throw \"Motrix Next 卸载器退出码异常: $($process.ExitCode)\" }",
+            "}"
+        ]
+    },
+    "bin": [
+        "MotrixNext.exe",
+        "motrix-next"
+    ],
+    "shortcuts": [
+        [
+            "MotrixNext.exe",
+            "Motrix Next"
+        ]
+    ],
+    "checkver": {
+        "url": "https://api.github.com/repos/AnInsomniacy/motrix-next/releases/latest",
+        "jsonpath": "$.tag_name",
+        "regex": "v([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/AnInsomniacy/motrix-next/releases/download/v$version/MotrixNext_$version_x64-setup.exe"
+            }
+        },
+        "hash": {
+            "mode": "download"
+        }
+    }
+}
