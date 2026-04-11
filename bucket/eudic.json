@@ -1,5 +1,5 @@
 {
-    "version": "14.2.1.0",
+    "version": "26.4.0.0",
     "description": "权威英语词典软件，支持屏幕取词与真人发音",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
@@ -13,8 +13,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://static.frdic.com/pkg/eudic_win.zip",
-            "hash": "56bc05a5b678f97a32a5a4ad07b55cf53bebeafb7c9e64b931d6244170fa11ce"
+            "url": "https://www.eudic.net/download/eudic_win.zip?x=1#/eudic_win.zip",
+            "hash": "79d73dc16fdfda6bc62c8df47a713c9f438a98d082de1d7a254186f6f0af238f"
         }
     },
     "pre_install": "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow",
@@ -80,9 +80,10 @@
     },
     "checkver": {
         "script": [
-            "$url = 'https://static.frdic.com/pkg/eudic_win.zip'",
-            "$tmp = cache_path 'eudic' '64bit' $url",
-            "Invoke-WebRequest $url -OutFile $tmp -UseBasicParsing",
+            "$cacheUrl = 'https://www.eudic.net/download/eudic_win.zip'",
+            "$downloadUrl = $cacheUrl + '?x=1'",
+            "$tmp = cache_path 'eudic' '64bit' $cacheUrl",
+            "Invoke-WebRequest $downloadUrl -OutFile $tmp -UseBasicParsing",
             "$dest = Join-Path (Split-Path $tmp) 'eudic_extract'",
             "if (Test-Path $dest) { try { Remove-Item -Recurse -Force $dest -ErrorAction Stop } catch { } }",
             "Add-Type -AssemblyName System.IO.Compression.FileSystem",
@@ -100,7 +101,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://static.frdic.com/pkg/eudic_win.zip"
+                "url": "https://www.eudic.net/download/eudic_win.zip?x=1#/eudic_win.zip"
             }
         },
         "hash": {
