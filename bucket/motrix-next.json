@@ -7,7 +7,7 @@
         "url": "https://github.com/AnInsomniacy/motrix-next/blob/main/LICENSE"
     },
     "notes": [
-        "使用官方 Windows NSIS 安装器静默安装到 Scoop 目录；上游安装器声明了提升权限，因此安装或卸载时会弹出 UAC，请选择「是」继续",
+        "使用 7-Zip 直接解包官方 Windows NSIS 安装器到 Scoop 目录，不写入 Program Files，也不依赖 UAC",
         "上游未进行代码签名，首次下载或运行时可能被浏览器或杀毒软件提示风险",
         "更新时如提示文件占用，请先退出 Motrix Next 托盘与主程序后再执行 scoop update motrix-next"
     ],
@@ -21,28 +21,19 @@
         "script": [
             "$installer = Get-ChildItem -Path $dir -Filter 'MotrixNext_*_x64-setup.exe' -File | Select-Object -First 1 -ExpandProperty FullName",
             "if (-not (Test-Path $installer)) { throw '未找到 Motrix Next 安装器文件' }",
-            "$arguments = \"/S /CurrentUser /D=$dir\"",
-            "$process = Start-Process -FilePath $installer -ArgumentList $arguments -Verb RunAs -Wait -PassThru",
-            "if ($process.ExitCode -ne 0) { throw \"Motrix Next 安装器退出码异常: $($process.ExitCode)\" }",
+            "& 7z x $installer -o\"$dir\" -y | Out-Null",
+            "if (-not (Test-Path (Join-Path $dir 'motrix-next.exe'))) { throw '解包失败：未找到 motrix-next.exe' }",
+            "@('$PLUGINSDIR', 'uninstall.exe') | ForEach-Object { if (Test-Path (Join-Path $dir $_)) { Remove-Item (Join-Path $dir $_) -Recurse -Force -ErrorAction SilentlyContinue } }",
             "Remove-Item $installer -Force -ErrorAction SilentlyContinue"
         ]
     },
-    "uninstaller": {
-        "script": [
-            "$uninstaller = Join-Path $dir 'uninstall.exe'",
-            "if (Test-Path $uninstaller) {",
-            "    $process = Start-Process -FilePath $uninstaller -ArgumentList '/S /CurrentUser' -Verb RunAs -Wait -PassThru",
-            "    if ($process.ExitCode -ne 0) { throw \"Motrix Next 卸载器退出码异常: $($process.ExitCode)\" }",
-            "}"
-        ]
-    },
     "bin": [
-        "MotrixNext.exe",
+        "motrix-next.exe",
         "motrix-next"
     ],
     "shortcuts": [
         [
-            "MotrixNext.exe",
+            "motrix-next.exe",
             "Motrix Next"
         ]
     ],
