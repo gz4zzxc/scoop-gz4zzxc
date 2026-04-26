@@ -1,5 +1,5 @@
 {
-    "version": "3.8.2",
+    "version": "3.8.4",
     "description": "Motrix 的现代重写版下载管理器，基于 Tauri 与 aria2",
     "homepage": "https://github.com/AnInsomniacy/motrix-next",
     "license": {
@@ -13,8 +13,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/AnInsomniacy/motrix-next/releases/download/v3.8.2/MotrixNext_3.8.2_x64-setup.exe",
-            "hash": "3a1a8c70125003271823a9880bbff75daed293b3d2a568f9ea1253e2793c56f0"
+            "url": "https://github.com/AnInsomniacy/motrix-next/releases/download/v3.8.4/MotrixNext_3.8.4_x64-setup.exe",
+            "hash": "65ffc05a3c9386911d8a8d55f350f4b42c9a5399f6367ea2471b72a0f3c27190"
         }
     },
     "installer": {
