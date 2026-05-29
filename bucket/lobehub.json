@@ -1,5 +1,5 @@
 {
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "开源的多模型 AI 聊天与增强工具 (Desktop Electron 版)",
     "homepage": "https://github.com/lobehub/lobehub",
     "license": {
@@ -13,8 +13,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/lobehub/lobehub/releases/download/v2.2.0/LobeHub-2.2.0-setup.exe",
-            "hash": "d7d23f29882f3da5e1981d4dd3cb7d20ef830771bdc9e3dc9652fdcf987c872f"
+            "url": "https://github.com/lobehub/lobehub/releases/download/v2.2.1/LobeHub-2.2.1-setup.exe",
+            "hash": "79e8010423ed4d2954f98755a40e4c91d50814f41edf5ac0b5c95fb22a637c21"
         }
     },
     "installer": {
