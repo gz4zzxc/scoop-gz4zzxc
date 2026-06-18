@@ -46,9 +46,6 @@
             "32bit": {
                 "url": "https://www.dida365.com/down/getApp/download?type=win#/dl.exe"
             }
-        },
-        "hash": {
-            "mode": "download"
         }
     }
 }

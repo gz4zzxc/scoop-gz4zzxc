@@ -77,13 +77,16 @@ AliyunDrive's CDN blocks generic User-Agents.
 - **Installation Fix**: `pre_install` manually downloads using `Invoke-WebRequest -UserAgent ...`
 - **Workaround**: Uses a dummy CDN URL (`.../LICENSE#/dl-bypass`) as placeholder since Scoop requires a valid `url` field
 
-#### 2. Dida365 (Checkver Script + InnoSetup)
+#### 2. Dida365 (Checkver Script + InnoSetup + Hash Re-validation)
 
-Dida365 (TickTick China) doesn't expose version via simple API.
+Dida365 (TickTick China) doesn't expose version via a stable API, and its CDN frequently repacks installers (same version, different hash).
 
-- **checkver**: Uses PowerShell `script` block to download exe header and extract `ProductVersion`
+- **checkver**: Uses PowerShell `script` block to download exe and extract `ProductVersion`
 - **Installation**: `"innosetup": true` unpacks without running installer (Portable Mode)
 - **Architecture**: Provides both `type=win` and `type=win64` URLs for auto-selection
+- **Hash drift mitigation**: The CI workflow includes a "Re-validate hashes" step that downloads current installers and compares hashes against the manifest, updating even when the version number hasn't changed. This catches upstream repacks that `checkver -u` alone would miss (it only triggers on version changes).
+- **Why not `release_note.json` API**: `https://pull.dida365.com/windows/release_note.json` exists but reports a different version than the exe's `ProductVersion` (e.g., API says `8.1.0.0` while exe says `8.1.0.1`), and the CDN filename pattern is unstable (`dida_win_setup` → `dida_wins_setup`), making `$cleanVersion` URL construction unreliable.
+- **Why not CDN version-specific URL**: The CDN 302 redirect target includes a build number (e.g., `dida_wins_setup_release_x64_8101.exe`), but the naming pattern changes unpredictably and the build number doesn't always match `$cleanVersion` derived from the API version.
 
 #### 3. Eudic (Nested Archive Extraction)
 
@@ -124,9 +127,9 @@ Standard electron-builder NSIS setup.
 
 3. **Hash Strategy**:
    - Always use SHA256
-   - For `autoupdate`:
-     - Prefer `"hash": { "mode": "download" }` if upstream doesn't provide hash files
-     - Use `"hash": { "url": "..." }` if upstream provides .sha256 files
+   - For `autoupdate`: omit `hash` section entirely when upstream doesn't provide hash files (Scoop defaults to `mode: download` — downloads and computes locally)
+   - Use `"hash": { "url": "..." }` only if upstream provides .sha256 files
+   - For apps with stable redirect URLs (like dida365): the CI workflow includes a dedicated hash re-validation step to catch upstream repacks that `checkver -u` alone would miss
 
 4. **No Sleep Calls**:
    - Avoid `Start-Sleep`; check for process termination or file locks instead

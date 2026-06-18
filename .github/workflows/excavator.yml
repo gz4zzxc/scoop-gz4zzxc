@@ -63,6 +63,48 @@ jobs:
           }
           & pwsh -File $checkver * -u -dir (Resolve-Path .).Path
 
+      - name: Re-validate hashes for stable-URL apps
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $stableUrlApps = @('dida365')
+          $anyUpdated = $false
+
+          foreach ($app in $stableUrlApps) {
+            $manifestPath = "bucket/$app.json"
+            if (-not (Test-Path $manifestPath)) { continue }
+
+            $raw = Get-Content $manifestPath -Raw -Encoding UTF8
+            $manifest = $raw | ConvertFrom-Json
+
+            foreach ($arch in @('64bit', '32bit')) {
+              if (-not $manifest.architecture.$arch) { continue }
+              $url = $manifest.architecture.$arch.url
+              $expectedHash = $manifest.architecture.$arch.hash
+
+              $downloadUrl = $url -replace '#/.*$', ''
+              $tmpFile = Join-Path $env:RUNNER_TEMP "$app-$arch.exe"
+              Write-Host "Re-validating $app ($arch): downloading..." -ForegroundColor Cyan
+              Invoke-WebRequest $downloadUrl -OutFile $tmpFile -UseBasicParsing
+              $actualHash = (Get-FileHash $tmpFile -Algorithm SHA256).Hash.ToLower()
+              Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+
+              if ($actualHash -ne $expectedHash.ToLower()) {
+                Write-Host "  Hash mismatch! Expected=$expectedHash Actual=$actualHash" -ForegroundColor Yellow
+                Write-Host "  Updating hash in manifest..." -ForegroundColor Yellow
+                $pattern = [regex]::Escape($expectedHash)
+                $raw = $raw -replace $pattern, $actualHash
+                $anyUpdated = $true
+              } else {
+                Write-Host "  Hash OK ($actualHash)" -ForegroundColor Green
+              }
+            }
+
+            if ($anyUpdated) {
+              Set-Content -Path $manifestPath -Value $raw -Encoding UTF8NoBOM -NoNewline
+            }
+          }
+
       - name: Update README version table
         shell: pwsh
         run: |
