@@ -19,7 +19,6 @@
         }
     },
     "innosetup": true,
-    "pre_install": "# 可选：清理多余快捷方式，如有需要可在此添加",
     "bin": "TickTick.exe",
     "shortcuts": [
         [

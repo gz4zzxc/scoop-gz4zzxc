@@ -9,7 +9,7 @@
         "内置权威英语词典，支持离线查词",
         "支持生词本、笔记、荧光笔标记等学习功能",
         "多平台同步，支持学习记录云端同步",
-        "安装后可在开始菜单或桌面找到欧路词典图标"
+        "安装后可在开始菜单中找到欧路词典快捷方式"
     ],
     "architecture": {
         "64bit": {
@@ -17,7 +17,6 @@
             "hash": "53407760f85d488c249226f37f3125f24791d75e1f8c16c5c5ca6724d6677d88"
         }
     },
-    "pre_install": "Write-Host 'Preparing to install 欧路词典...' -ForegroundColor Yellow",
     "installer": {
         "script": [
             "Write-Host 'Installing 欧路词典...' -ForegroundColor Green",
@@ -38,7 +37,7 @@
             "    Write-Host '✓ 欧路词典 installation completed.' -ForegroundColor Green",
             "} else {",
             "    Write-Host '✗ eudic_win.exe not found, installation failed' -ForegroundColor Red",
-            "    exit 1",
+            "    throw 'eudic_win.exe not found, installation failed'",
             "}"
         ]
     },
@@ -51,33 +50,10 @@
     ],
     "post_install": [
         "Write-Host '欧路词典已安装完成！' -ForegroundColor Cyan",
-        "Write-Host '您可以在开始菜单或桌面找到欧路词典图标' -ForegroundColor Yellow",
+        "Write-Host '您可以在开始菜单中找到欧路词典快捷方式' -ForegroundColor Yellow",
         "Write-Host '首次使用建议登录账号以同步学习记录' -ForegroundColor Yellow",
-        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow",
-        "$wsh = New-Object -ComObject WScript.Shell",
-        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\")",
-        "$lnk.TargetPath = \"$dir\\eudic.exe\"",
-        "$lnk.Save()"
+        "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
     ],
-    "pre_uninstall": "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\欧路词典.lnk\" -Force -ErrorAction SilentlyContinue }",
-    "uninstaller": {
-        "##": "Checks for system-level uninstaller in case the app registered itself or was previously installed.",
-        "script": [
-            "Write-Host 'Uninstalling 欧路词典...' -ForegroundColor Yellow",
-            "$uninstallPath = Get-ChildItem \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\" | Get-ItemProperty | Where-Object { $_.DisplayName -like '*欧路词典*' -or $_.DisplayName -like '*Eudic*' } | Select-Object -ExpandProperty UninstallString",
-            "if ($uninstallPath) {",
-            "    if ($uninstallPath -match '\"(.+?)\"') {",
-            "        $uninstallExe = $matches[1]",
-            "        Start-Process -Wait -FilePath $uninstallExe -ArgumentList '/S' -PassThru | Out-Null",
-            "        Write-Host '欧路词典 uninstalled successfully.' -ForegroundColor Green",
-            "    } else {",
-            "        Write-Host 'Could not find uninstaller.' -ForegroundColor Red",
-            "    }",
-            "} else {",
-            "    Write-Host '欧路词典 is not installed.' -ForegroundColor Yellow",
-            "}"
-        ]
-    },
     "checkver": {
         "script": [
             "$cacheUrl = 'https://www.eudic.net/download/eudic_win.zip'",

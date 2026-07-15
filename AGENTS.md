@@ -64,6 +64,7 @@ CDN blocks generic `User-Agent` headers with 403.
 - **checkver**: MUST include `"useragent": "Mozilla/5.0..."`.
 - **install**: `pre_install` downloads manually via `Invoke-WebRequest -UserAgent ...`
 - **Workaround**: a dummy CDN URL (`.../LICENSE#/dl-bypass`) is used as placeholder since Scoop requires a valid `url` field
+- **Hash maintenance**: the workflow re-downloads the real installer with the manifest User-Agent and refreshes the hash embedded in `pre_install`
 
 #### 2. Dida365 (checkver script + InnoSetup + hash re-validation)
 

@@ -23,10 +23,11 @@
             "Write-Host 'Installing Miniforge...' -ForegroundColor Green",
             "$exe = Get-ChildItem -Path $dir -Filter 'Miniforge3-*-Windows-*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1",
             "if (-not $exe) { $exe = Get-ChildItem -Path $dir -Filter '*.exe' | Where-Object { $_.Name -like 'Miniforge*Windows*' } | Select-Object -First 1 }",
-            "if (-not $exe) { Write-Host '✗ Installer not found' -ForegroundColor Red; exit 1 }",
+            "if (-not $exe) { throw 'Miniforge installer not found' }",
             "$installDir = Join-Path $dir 'Miniforge3'",
             "if (Test-Path $installDir) { try { Remove-Item -Recurse -Force $installDir -ErrorAction Stop } catch { Write-Host 'Warn: failed to clean previous install dir, continuing...' -ForegroundColor DarkYellow } }",
-            "Start-Process -Wait -FilePath $exe.FullName -ArgumentList '/InstallationType=JustMe', '/AddToPath=0', '/RegisterPython=0', '/S', ('/D=' + $installDir)"
+            "$process = Start-Process -Wait -PassThru -FilePath $exe.FullName -ArgumentList '/InstallationType=JustMe', '/AddToPath=0', '/RegisterPython=0', '/S', ('/D=' + $installDir)",
+            "if ($process.ExitCode -ne 0) { throw \"Miniforge installer failed with exit code $($process.ExitCode)\" }"
         ]
     },
     "bin": "Miniforge3\\condabin\\conda.bat",
@@ -51,12 +52,5 @@
             "url": "https://github.com/conda-forge/miniforge/releases/download/$version/Miniforge3-$version-Windows-x86_64.exe.sha256",
             "regex": "^([a-fA-F]{64})"
         }
-    },
-    "uninstaller": {
-        "script": [
-            "Write-Host 'Uninstalling Miniforge...' -ForegroundColor Yellow",
-            "$uninst = Get-ChildItem -Path $dir -Recurse -Filter 'Uninstall*Miniforge*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1",
-            "if ($uninst) { Start-Process -Wait -FilePath $uninst.FullName -ArgumentList '/S' } else { Write-Host 'Uninstaller not found, skipping.' -ForegroundColor DarkYellow }"
-        ]
     }
 }

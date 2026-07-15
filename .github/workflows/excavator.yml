@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
 
 jobs:
   update-manifests:
@@ -46,7 +44,7 @@ jobs:
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-          iwr -useb get.scoop.sh | iex
+          Invoke-RestMethod -Uri 'https://get.scoop.sh' | Invoke-Expression
           scoop config aria2-warning-enabled false
           scoop install git
 
@@ -59,7 +57,7 @@ jobs:
           if (-not (Test-Path $checkver)) {
             Write-Host "Downloading checkver.ps1 as fallback..." -ForegroundColor Yellow
             $checkver = Join-Path $env:RUNNER_TEMP 'checkver.ps1'
-            iwr -useb https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/bin/checkver.ps1 -OutFile $checkver
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/bin/checkver.ps1' -OutFile $checkver
           }
           & pwsh -File $checkver * -u -dir (Resolve-Path .).Path
 
@@ -67,8 +65,7 @@ jobs:
         shell: pwsh
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          $stableUrlApps = @('dida365')
-          $anyUpdated = $false
+          $stableUrlApps = @('aliyundrive', 'dida365')
 
           foreach ($app in $stableUrlApps) {
             $manifestPath = "bucket/$app.json"
@@ -76,6 +73,31 @@ jobs:
 
             $raw = Get-Content $manifestPath -Raw -Encoding UTF8
             $manifest = $raw | ConvertFrom-Json
+            $appUpdated = $false
+
+            if ($app -eq 'aliyundrive') {
+              $downloadUrl = "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$($manifest.version).exe"
+              $tmpFile = Join-Path $env:RUNNER_TEMP "$app-64bit.exe"
+              Write-Host "Re-validating $app (64bit): downloading..." -ForegroundColor Cyan
+              Invoke-WebRequest $downloadUrl -Headers @{ 'User-Agent' = $manifest.useragent } -OutFile $tmpFile -UseBasicParsing
+              $actualHash = (Get-FileHash $tmpFile -Algorithm SHA256).Hash.ToLower()
+              Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+
+              $pattern = '(\$expectedHash\s*=\s*")[a-fA-F0-9]{64}(")'
+              $updated = [regex]::Replace($raw, $pattern, "`$1$actualHash`$2", 1)
+              if ($updated -ne $raw) {
+                Write-Host "  Updating $app installer hash to $actualHash" -ForegroundColor Yellow
+                $raw = $updated
+                $appUpdated = $true
+              } else {
+                Write-Host "  Hash OK ($actualHash)" -ForegroundColor Green
+              }
+
+              if ($appUpdated) {
+                Set-Content -Path $manifestPath -Value $raw -Encoding UTF8NoBOM -NoNewline
+              }
+              continue
+            }
 
             foreach ($arch in @('64bit', '32bit')) {
               if (-not $manifest.architecture.$arch) { continue }
@@ -94,13 +116,13 @@ jobs:
                 Write-Host "  Updating hash in manifest..." -ForegroundColor Yellow
                 $pattern = [regex]::Escape($expectedHash)
                 $raw = $raw -replace $pattern, $actualHash
-                $anyUpdated = $true
+                $appUpdated = $true
               } else {
                 Write-Host "  Hash OK ($actualHash)" -ForegroundColor Green
               }
             }
 
-            if ($anyUpdated) {
+            if ($appUpdated) {
               Set-Content -Path $manifestPath -Value $raw -Encoding UTF8NoBOM -NoNewline
             }
           }
@@ -176,7 +198,11 @@ jobs:
         run: |
           $changed = git status --porcelain -- bucket/*.json README.md
           $changed | Write-Host
-          if (-not [string]::IsNullOrWhiteSpace($changed)) { echo "changed=true" >> $env:GITHUB_OUTPUT } else { echo "changed=false" >> $env:GITHUB_OUTPUT }
+          if (-not [string]::IsNullOrWhiteSpace($changed)) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'changed=true'
+          } else {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'changed=false'
+          }
 
       - name: Commit changes
         if: steps.diff.outputs.changed == 'true'

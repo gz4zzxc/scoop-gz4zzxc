@@ -7,7 +7,7 @@
     "notes": [
         "阿里云盘官方桌面客户端",
         "支持快速上传下载、文件管理、在线预览等功能",
-        "安装后可在开始菜单或桌面找到阿里云盘图标",
+        "安装后可在开始菜单中找到阿里云盘快捷方式",
         "首次使用需要登录阿里云账号"
     ],
     "architecture": {
@@ -41,15 +41,8 @@
     ],
     "post_install": [
         "Write-Host '阿里云盘已安装完成！' -ForegroundColor Cyan",
-        "Write-Host '您可以在开始菜单或桌面找到阿里云盘图标' -ForegroundColor Yellow",
-        "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow",
-        "$wsh = New-Object -ComObject WScript.Shell",
-        "$lnk = $wsh.CreateShortcut(\"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\")",
-        "$lnk.TargetPath = \"$dir\\aDrive.exe\"",
-        "$lnk.Save()"
-    ],
-    "pre_uninstall": [
-        "if (Test-Path \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\") { Remove-Item \"$([Environment]::GetFolderPath('Desktop'))\\阿里云盘.lnk\" -Force -ErrorAction SilentlyContinue }"
+        "Write-Host '您可以在开始菜单中找到阿里云盘快捷方式' -ForegroundColor Yellow",
+        "Write-Host '首次使用请登录您的阿里云账号' -ForegroundColor Yellow"
     ],
     "checkver": {
         "url": "https://www.aliyundrive.com/download",

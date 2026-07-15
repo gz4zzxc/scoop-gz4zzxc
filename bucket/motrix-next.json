@@ -21,7 +21,8 @@
         "script": [
             "$installer = Get-ChildItem -Path $dir -Filter 'MotrixNext_*_x64-setup.exe' -File | Select-Object -First 1 -ExpandProperty FullName",
             "if (-not (Test-Path $installer)) { throw '未找到 Motrix Next 安装器文件' }",
-            "& 7z x $installer -o\"$dir\" -y | Out-Null",
+            "& 7z x \"$installer\" -o\"$dir\" -y | Out-Null",
+            "if ($LASTEXITCODE -ne 0) { throw \"7-Zip extraction failed with exit code $LASTEXITCODE\" }",
             "if (-not (Test-Path (Join-Path $dir 'motrix-next.exe'))) { throw '解包失败：未找到 motrix-next.exe' }",
             "@('$PLUGINSDIR', 'uninstall.exe') | ForEach-Object { if (Test-Path (Join-Path $dir $_)) { Remove-Item (Join-Path $dir $_) -Recurse -Force -ErrorAction SilentlyContinue } }",
             "Remove-Item $installer -Force -ErrorAction SilentlyContinue"

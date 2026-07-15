@@ -23,12 +23,12 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 
 | App | Description | Version |
 | --- | --- | --- |
-| lobehub | LobeChat 桌面客户端 | 2.1.49 |
-| miniforge | Conda-forge 精简版（仅 conda） | 25.11.0-1 |
+| lobehub | LobeChat 桌面客户端 | 2.2.10 |
+| miniforge | Conda-forge 精简版（仅 conda） | 26.3.2-3 |
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
 | eudic | 欧路词典：英语词典软件 | 26.4.0.0 |
-| dida365 | 滴答清单：待办/日历/番茄钟 | 8.0.4.0 |
-| motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.6.9 |
+| dida365 | 滴答清单：待办/日历/番茄钟 | 8.1.2.0 |
+| motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.6 |
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 
@@ -107,6 +107,7 @@ AliyunDrive 清单已特别配置以处理下载限制：
 
 - **自动 User-Agent 处理**：清单自动使用正确的 User-Agent 头下载安装程序，避免 403 Forbidden 错误
 - **备用下载方法**：如果主下载方法失败，会自动尝试替代方案
+- **哈希复核**：自动更新工作流会重新计算真实安装包的 SHA256，避免同版本重新打包导致安装失败
 - **进度反馈**：下载和安装期间提供清晰的进度指示和错误消息
 
 ### 📖 Eudic 安装说明
@@ -135,10 +136,9 @@ Eudic（欧路词典）清单提供全面的英语词典解决方案：
 scoop install gz4zzxc/dida365
 ```
 
-#### 可能的后续增强（未实现）
+#### 仍可评估的增强
 
 - 持久化用户数据目录（需先确认具体文件夹名）
-- 在 manifest 中启用 `hash.mode: download` 以减少手动维护
 - 提供可选启动参数包装（番茄钟/调试等）
 
 > ⚠️ 如应用启动失败，请列出目录并反馈 issue：
@@ -155,6 +155,7 @@ scoop install gz4zzxc/dida365
 - **范围**：所有定义了 `checkver` 和 `autoupdate` 的应用
 - **工作原理**：
   - 运行 `checkver * -u` 更新 `version`、`url` 和 `hash`
+  - 对 AliyunDrive、Dida365 等特殊 CDN 清单额外复核真实安装包哈希
   - 更新 README 「可用应用」表格中的版本以匹配清单
   - 使用 `[skip ci]` 直接提交并推送到 `main` 分支以避免循环
 
