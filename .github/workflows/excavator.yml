@@ -66,6 +66,45 @@ jobs:
         run: |
           $ProgressPreference = 'SilentlyContinue'
           $stableUrlApps = @('aliyundrive', 'dida365')
+          $maxAttempts = 3
+          $backoffSeconds = @(5, 15, 30)
+
+          function Invoke-DownloadWithRetry {
+            param(
+              [Parameter(Mandatory)][string]$Uri,
+              [Parameter(Mandatory)][string]$OutFile,
+              [hashtable]$Headers = $null
+            )
+            $lastError = $null
+            for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+              try {
+                if (Test-Path $OutFile) {
+                  Remove-Item $OutFile -Force -ErrorAction SilentlyContinue
+                }
+                $params = @{
+                  Uri             = $Uri
+                  OutFile         = $OutFile
+                  UseBasicParsing = $true
+                }
+                if ($Headers) { $params['Headers'] = $Headers }
+                Invoke-WebRequest @params
+                if ((Test-Path $OutFile) -and ((Get-Item $OutFile).Length -gt 0)) {
+                  return $true
+                }
+                throw "Downloaded file is missing or empty: $OutFile"
+              } catch {
+                $lastError = $_
+                Write-Host "  Attempt $attempt/$maxAttempts failed: $($_.Exception.Message)" -ForegroundColor Yellow
+                if ($attempt -lt $maxAttempts) {
+                  $delay = $backoffSeconds[$attempt - 1]
+                  Write-Host "  Retrying in ${delay}s..." -ForegroundColor Yellow
+                  Start-Sleep -Seconds $delay
+                }
+              }
+            }
+            Write-Host "  Giving up after $maxAttempts attempts: $lastError" -ForegroundColor Red
+            return $false
+          }
 
           foreach ($app in $stableUrlApps) {
             $manifestPath = "bucket/$app.json"
@@ -79,7 +118,11 @@ jobs:
               $downloadUrl = "https://cdn.aliyundrive.net/downloads/apps/desktop/aDrive-$($manifest.version).exe"
               $tmpFile = Join-Path $env:RUNNER_TEMP "$app-64bit.exe"
               Write-Host "Re-validating $app (64bit): downloading..." -ForegroundColor Cyan
-              Invoke-WebRequest $downloadUrl -Headers @{ 'User-Agent' = $manifest.useragent } -OutFile $tmpFile -UseBasicParsing
+              $ok = Invoke-DownloadWithRetry -Uri $downloadUrl -OutFile $tmpFile -Headers @{ 'User-Agent' = $manifest.useragent }
+              if (-not $ok) {
+                Write-Host "  Skipping $app hash re-validation (download failed; non-fatal)" -ForegroundColor Yellow
+                continue
+              }
               $actualHash = (Get-FileHash $tmpFile -Algorithm SHA256).Hash.ToLower()
               Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
 
@@ -107,7 +150,11 @@ jobs:
               $downloadUrl = $url -replace '#/.*$', ''
               $tmpFile = Join-Path $env:RUNNER_TEMP "$app-$arch.exe"
               Write-Host "Re-validating $app ($arch): downloading..." -ForegroundColor Cyan
-              Invoke-WebRequest $downloadUrl -OutFile $tmpFile -UseBasicParsing
+              $ok = Invoke-DownloadWithRetry -Uri $downloadUrl -OutFile $tmpFile
+              if (-not $ok) {
+                Write-Host "  Skipping $app ($arch) hash re-validation (download failed; non-fatal)" -ForegroundColor Yellow
+                continue
+              }
               $actualHash = (Get-FileHash $tmpFile -Algorithm SHA256).Hash.ToLower()
               Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
 
