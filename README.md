@@ -29,6 +29,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | eudic | 欧路词典：英语词典软件 | 26.4.0.0 |
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.1.2.0 |
 | motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.6 |
+| ndi-tools | NDI 音视频网络工具集 | 6.3.2 |
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 

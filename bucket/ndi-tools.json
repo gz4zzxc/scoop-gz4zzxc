@@ -1,0 +1,56 @@
+{
+    "version": "6.3.2",
+    "description": "NDI 音视频网络工具集，包含发现、监看、路由、采集、Webcam Input 与 Bridge",
+    "homepage": "https://ndi.video/tools/",
+    "license": {
+        "identifier": "Proprietary",
+        "url": "https://docs.ndi.video/all/using-ndi/ndi-tools/installing-ndi-tools/software-license-agreement"
+    },
+    "notes": [
+        "使用官方 Inno Setup 安装器并指定 Scoop 版本目录；NDI Tools 的 Webcam/HX Driver/Codec 等功能需要系统组件，安装或更新可能需要管理员权限",
+        "这是完整安装方案，不是纯便携解包；卸载时会调用官方卸载器以清理驱动和注册项",
+        "如本机已有 Program Files 中的旧版 NDI 6 Tools，建议先退出 NDI 相关程序，必要时先卸载旧版再安装 Scoop 版本"
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://downloads.ndi.tv/Tools/NDI%206%20Tools.exe",
+            "hash": "605cb6128999778b38126ffef167c76d3d8648d39a582ffc71529dd26f64bf32"
+        }
+    },
+    "installer": {
+        "args": [
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/DIR=$dir"
+        ]
+    },
+    "uninstaller": {
+        "file": "unins000.exe",
+        "args": [
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART"
+        ]
+    },
+    "shortcuts": [
+        [
+            "NDI Launcher.exe",
+            "NDI Tools"
+        ]
+    ],
+    "checkver": {
+        "url": "https://ndi.video/tools/",
+        "regex": "Version\\s+([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://downloads.ndi.tv/Tools/NDI%206%20Tools.exe"
+            }
+        },
+        "hash": {
+            "mode": "download"
+        }
+    }
+}

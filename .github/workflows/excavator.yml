@@ -218,7 +218,8 @@ jobs:
             @{ key = 'lobehub';    file = 'bucket/lobehub.json'    },
             @{ key = 'eudic';      file = 'bucket/eudic.json'      },
             @{ key = 'dida365';    file = 'bucket/dida365.json'    },
-            @{ key = 'motrix-next'; file = 'bucket/motrix-next.json' }
+            @{ key = 'motrix-next'; file = 'bucket/motrix-next.json' },
+            @{ key = 'ndi-tools';  file = 'bucket/ndi-tools.json'  }
           )
 
           foreach ($a in $apps) {
