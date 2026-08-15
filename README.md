@@ -2,7 +2,7 @@
 
 [![Excavator](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml/badge.svg)](https://github.com/gz4zzxc/scoop-gz4zzxc/actions/workflows/excavator.yml)
 
-一个定制的 [Scoop](https://scoop.sh/) Bucket，提供「便携解包」版本的应用程序。
+一个定制的 [Scoop](https://scoop.sh/) Bucket，主要提供「便携解包」版本的应用程序，也收录少数需要官方安装器和系统组件的应用。
 
 ## 📥 安装
 
@@ -100,7 +100,12 @@ scoop install gz4zzxc/eudic
 
 # 安装滴答清单
 scoop install gz4zzxc/dida365
+
+# 安装 NDI Tools（包含运行库/驱动，可能需要管理员权限）
+scoop install gz4zzxc/ndi-tools
 ```
+
+ndi-tools 使用官方完整安装器，不是纯便携包；如果系统中已有通过 Program Files 或 WinGet 安装的 NDI Tools，请先卸载旧版，否则 manifest 会主动中止安装以避免 Inno Setup 注册项冲突。
 
 ### ☁️ AliyunDrive 安装说明
 
