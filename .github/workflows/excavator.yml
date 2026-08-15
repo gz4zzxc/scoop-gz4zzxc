@@ -65,7 +65,7 @@ jobs:
         shell: pwsh
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          $stableUrlApps = @('aliyundrive', 'dida365')
+          $stableUrlApps = @('aliyundrive', 'dida365', 'ndi-tools')
           $maxAttempts = 3
           $backoffSeconds = @(5, 15, 30)
 

@@ -9,7 +9,14 @@
     "notes": [
         "使用官方 Inno Setup 安装器并指定 Scoop 版本目录；NDI Tools 的 Webcam/HX Driver/Codec 等功能需要系统组件，安装或更新可能需要管理员权限",
         "这是完整安装方案，不是纯便携解包；卸载时会调用官方卸载器以清理驱动和注册项",
-        "如本机已有 Program Files 中的旧版 NDI 6 Tools，建议先退出 NDI 相关程序，必要时先卸载旧版再安装 Scoop 版本"
+        "安装前会检查同一 Inno AppId 的原生/WinGet 注册项；如检测到 Program Files 等外部安装，安装会中止，请先卸载旧版再重试"
+    ],
+    "pre_install": [
+        "$appId = '{35D49334-910D-4519-B971-C7B604214855}_is1'",
+        "$appRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $dir)).TrimEnd('\\')",
+        "$uninstallKeys = @(\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\$appId\", \"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\$appId\", \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\$appId\")",
+        "$conflicts = foreach ($uninstallKey in $uninstallKeys) { if (Test-Path -LiteralPath $uninstallKey) { $entry = Get-ItemProperty -LiteralPath $uninstallKey -ErrorAction SilentlyContinue; $installLocation = [string]$entry.InstallLocation; $normalizedInstallLocation = if ($installLocation) { [System.IO.Path]::GetFullPath($installLocation).TrimEnd('\\') } else { '' }; $managedByScoop = $normalizedInstallLocation -and $normalizedInstallLocation.StartsWith($appRoot, [System.StringComparison]::OrdinalIgnoreCase) -and ($normalizedInstallLocation.Length -eq $appRoot.Length -or $normalizedInstallLocation[$appRoot.Length] -eq '\\'); if (-not $managedByScoop) { [PSCustomObject]@{ Key = $uninstallKey; DisplayName = [string]$entry.DisplayName; Version = [string]$entry.DisplayVersion; InstallLocation = $installLocation } } } }",
+        "if ($conflicts) { $details = ($conflicts | ForEach-Object { '{0} {1} at {2}' -f $_.DisplayName, $_.Version, $_.InstallLocation }) -join '; '; throw \"检测到已存在的原生 NDI Tools 安装 ($appId)：$details。请先卸载该安装，再执行 scoop install ndi-tools\" }"
     ],
     "architecture": {
         "64bit": {
