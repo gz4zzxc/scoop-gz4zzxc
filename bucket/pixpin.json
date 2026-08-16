@@ -1,0 +1,38 @@
+{
+    "version": "3.4.3.2",
+    "description": "强大且免费的截图贴图工具（支持截图、长截图、贴图、OCR 文字识别、标注）",
+    "homepage": "https://pixpin.cn/",
+    "license": "Freeware",
+    "notes": [
+        "使用官方 zip 便携版，manifest 不运行传统安装程序，直接解包到 Scoop 应用目录",
+        "用户配置（Config）、历史记录（History）等已通过 persist 持久化，更新版本不会丢失",
+        "更新时如提示文件占用，请先退出 PixPin 托盘与主程序后再执行 scoop update pixpin"
+    ],
+    "url": "https://download.pixpinapp.com/PixPin_win_3.4.3.2.zip",
+    "hash": "1ed2b048f7e1468cdd3dc869c3db0653d9308ffe4f48fb42091b0b559a90b211",
+    "extract_dir": "PixPin",
+    "bin": [
+        [
+            "PixPin.exe",
+            "pixpin"
+        ]
+    ],
+    "shortcuts": [
+        [
+            "PixPin.exe",
+            "PixPin"
+        ]
+    ],
+    "persist": [
+        "Config",
+        "Data",
+        "History"
+    ],
+    "checkver": {
+        "url": "https://pixpin.cn/docs/start/what-is-pixpin.html",
+        "regex": "link\"\\shref=\"/docs/official-log/(\\S+)\""
+    },
+    "autoupdate": {
+        "url": "https://download.pixpinapp.com/PixPin_win_$version.zip"
+    }
+}

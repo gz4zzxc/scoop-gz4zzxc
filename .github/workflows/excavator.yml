@@ -219,7 +219,8 @@ jobs:
             @{ key = 'eudic';      file = 'bucket/eudic.json'      },
             @{ key = 'dida365';    file = 'bucket/dida365.json'    },
             @{ key = 'motrix-next'; file = 'bucket/motrix-next.json' },
-            @{ key = 'ndi-tools';  file = 'bucket/ndi-tools.json'  }
+            @{ key = 'ndi-tools';  file = 'bucket/ndi-tools.json'  },
+            @{ key = 'pixpin';     file = 'bucket/pixpin.json'     }
           )
 
           foreach ($a in $apps) {
