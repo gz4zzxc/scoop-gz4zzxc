@@ -30,6 +30,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.1.2.0 |
 | motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.6 |
 | ndi-tools | NDI 音视频网络工具集 | 6.3.2 |
+| pixpin | 强大且免费的截图贴图工具（截图/贴图/OCR/标注） | 3.4.3.2 |
 
 ### 🐍 Miniforge (conda-forge minimal installer)
 
@@ -103,9 +104,21 @@ scoop install gz4zzxc/dida365
 
 # 安装 NDI Tools（包含运行库/驱动，可能需要管理员权限）
 scoop install gz4zzxc/ndi-tools
+
+# 安装 PixPin（截图贴图）
+scoop install gz4zzxc/pixpin
 ```
 
 ndi-tools 使用官方完整安装器，不是纯便携包；如果系统中已有通过 Program Files 或 WinGet 安装的 NDI Tools，请先卸载旧版，否则 manifest 会主动中止安装以避免 Inno Setup 注册项冲突。
+
+### 📌 PixPin 安装说明
+
+PixPin 是免费截图/贴图/长截图/OCR 工具，本仓库使用官方 zip 便携版：
+
+- **便携解包**：manifest 不运行传统安装程序，直接解包到 Scoop 应用目录
+- **数据持久化**：`Config`、`Data`、`History` 目录通过 `persist` 保留，更新不丢配置
+- **命令行**：安装后可用 `pixpin` 命令直接启动
+- **更新**：`scoop update pixpin` 即可，失败时可先 `scoop cache rm pixpin` 再重试
 
 ### ☁️ AliyunDrive 安装说明
 
