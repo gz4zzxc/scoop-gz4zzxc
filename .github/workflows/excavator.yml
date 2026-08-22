@@ -66,7 +66,7 @@ jobs:
           Get-ChildItem bucket -Filter '*.json' | Sort-Object Name | ForEach-Object {
             $manifest = $_
             Write-Host "Checking $($manifest.Name)..." -ForegroundColor Cyan
-            & pwsh -NoProfile -File $checkver $manifest.FullName -Update
+            & pwsh -NoProfile -File $checkver $manifest.FullName -Update -ThrowError
             if ($LASTEXITCODE -ne 0) {
               $failed += $manifest.Name
               Write-Host "::warning file=bucket/$($manifest.Name)::checkver exited with code $LASTEXITCODE; continuing" -ForegroundColor Yellow
@@ -268,6 +268,30 @@ jobs:
           } else {
             Add-Content -Path $env:GITHUB_OUTPUT -Value 'changed=false'
           }
+
+      - name: Validate pull request autoupdate diff
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $prFiles = @(git diff --name-only "$env:PR_BASE_SHA...$env:PR_HEAD_SHA" -- bucket README.md |
+            Where-Object { $_ -match '^(?:bucket/[^/]+\.json|README\.md)$' })
+          $generatedFiles = @(git diff --name-only -- bucket README.md |
+            Where-Object { $_ -match '^(?:bucket/[^/]+\.json|README\.md)$' })
+
+          Write-Host "Files changed by this PR:" -ForegroundColor Cyan
+          if ($prFiles.Count -gt 0) { $prFiles | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (none)' }
+          Write-Host "Files rewritten by autoupdate:" -ForegroundColor Cyan
+          if ($generatedFiles.Count -gt 0) { $generatedFiles | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (none)' }
+
+          $overlap = @($prFiles | Where-Object { $generatedFiles -contains $_ })
+          if ($overlap.Count -gt 0) {
+            throw "Autoupdate rewrote files changed by this PR: $($overlap -join ', '). Update the PR to match the generated manifest content."
+          }
+
+          Write-Host 'PR-owned manifests were not rewritten by autoupdate.' -ForegroundColor Green
 
       - name: Commit changes
         if: steps.diff.outputs.changed == 'true' && github.ref == 'refs/heads/main'

@@ -13,7 +13,7 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://static.frdic.com/pkg/eudic_win.zip?x=1#/eudic_win.zip",
+            "url": "https://www.eudic.net/download/eudic_win.zip?v=2026-08-13#/eudic_win.zip",
             "hash": "dad9c14d59f3d2dd88bd828d51864d76c2e2e528add67f15a65eecec74d51fde"
         }
     },
@@ -55,30 +55,35 @@
         "Write-Host '支持跨软件取词、划词搜索等便捷功能' -ForegroundColor Yellow"
     ],
     "checkver": {
-        "url": "https://static.frdic.com/",
+        "url": "https://www.eudic.net/v4/en/app/download",
         "script": [
-            "$cacheUrl = 'https://static.frdic.com/pkg/eudic_win.zip'",
-            "$downloadUrl = $cacheUrl + '?x=1'",
-            "$tmp = cache_path 'eudic' '64bit' $cacheUrl",
-            "Invoke-WebRequest $downloadUrl -OutFile $tmp -UseBasicParsing",
+            "$pageUrl = 'https://www.eudic.net/v4/en/app/download'",
+            "$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'",
+            "$page = (Invoke-WebRequest -UseBasicParsing -Uri $pageUrl -UserAgent $userAgent -MaximumRedirection 10 -ErrorAction Stop).Content",
+            "$match = [regex]::Match($page, '(?i)href\\s*=\\s*[\"''](?<url>[^\"'']*eudic_win\\.zip[^\"'']*)[\"'']')",
+            "if (-not $match.Success) { throw 'Could not find the Windows Eudic download link on the official page' }",
+            "$downloadUrl = [System.Uri]::new([System.Uri]$pageUrl, $match.Groups['url'].Value).AbsoluteUri",
+            "$downloadUrl = $downloadUrl -replace '#.*$', ''",
+            "$tmp = cache_path 'eudic' '64bit' 'https://www.eudic.net/download/eudic_win.zip'",
+            "Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -UserAgent $userAgent -MaximumRedirection 10 -OutFile $tmp -ErrorAction Stop",
             "$dest = Join-Path (Split-Path $tmp) 'eudic_extract'",
-            "if (Test-Path $dest) { try { Remove-Item -Recurse -Force $dest -ErrorAction Stop } catch { } }",
+            "if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop }",
             "Add-Type -AssemblyName System.IO.Compression.FileSystem",
             "[System.IO.Compression.ZipFile]::ExtractToDirectory($tmp, $dest)",
-            "$exe = Get-ChildItem -Path $dest -Recurse -Filter 'eudic_win.exe' | Select-Object -First 1",
+            "$exe = Get-ChildItem -LiteralPath $dest -Recurse -Filter 'eudic_win.exe' -File | Select-Object -First 1",
             "if (-not $exe) { throw 'eudic_win.exe not found in zip' }",
             "$product = (Get-Item $exe.FullName).VersionInfo.ProductVersion",
             "$file = (Get-Item $exe.FullName).VersionInfo.FileVersion",
             "if (-not $product) { throw 'Cannot read ProductVersion from eudic_win.exe' }",
-            "Write-Host ('eudic VersionInfo => ProductVersion=' + $product + '; FileVersion=' + $file) -ForegroundColor Yellow",
-            "$product"
+            "Write-Host ('eudic VersionInfo => ProductVersion=' + $product + '; FileVersion=' + $file + '; URL=' + $downloadUrl) -ForegroundColor Yellow",
+            "Write-Output ($product + '|' + $downloadUrl)"
         ],
-        "regex": "([\\d.]+)"
+        "regex": "(?<version>\\d+(?:\\.\\d+){3})\\|(?<url>https://[^|]+)"
     },
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://static.frdic.com/pkg/eudic_win.zip?x=1#/eudic_win.zip"
+                "url": "$matchUrl#/eudic_win.zip"
             }
         },
         "hash": {
