@@ -3,6 +3,8 @@ name: Auto Update Manifests
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   schedule:
     # Run at 8:00 AM Beijing Time (UTC+8) = 00:00 UTC every day
     - cron: '0 0 * * *'
@@ -268,7 +270,7 @@ jobs:
           }
 
       - name: Commit changes
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         shell: pwsh
         run: |
           git config user.name  "github-actions[bot]"
