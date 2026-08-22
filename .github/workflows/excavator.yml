@@ -50,8 +50,6 @@ jobs:
 
       - name: Run checkver for all manifests
         shell: pwsh
-        env:
-          THROW_ERROR: '0'
         run: |
           $checkver = "$env:USERPROFILE\scoop\apps\scoop\current\bin\checkver.ps1"
           if (-not (Test-Path $checkver)) {
@@ -59,7 +57,23 @@ jobs:
             $checkver = Join-Path $env:RUNNER_TEMP 'checkver.ps1'
             Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/bin/checkver.ps1' -OutFile $checkver
           }
-          & pwsh -File $checkver * -u -dir (Resolve-Path .).Path
+
+          # Run each manifest in its own process so a transient upstream error
+          # cannot prevent other manifests from updating and being committed.
+          $failed = @()
+          Get-ChildItem bucket -Filter '*.json' | Sort-Object Name | ForEach-Object {
+            $manifest = $_
+            Write-Host "Checking $($manifest.Name)..." -ForegroundColor Cyan
+            & pwsh -NoProfile -File $checkver $manifest.FullName -Update
+            if ($LASTEXITCODE -ne 0) {
+              $failed += $manifest.Name
+              Write-Host "::warning file=bucket/$($manifest.Name)::checkver exited with code $LASTEXITCODE; continuing" -ForegroundColor Yellow
+            }
+          }
+
+          if ($failed.Count -gt 0) {
+            Write-Host "checkver warnings (updates from other manifests will still be committed): $($failed -join ', ')" -ForegroundColor Yellow
+          }
 
       - name: Re-validate hashes for stable-URL apps
         shell: pwsh
