@@ -231,25 +231,19 @@ jobs:
             }
           }
 
-          $apps = @(
-            @{ key = 'aliyundrive'; file = 'bucket/aliyundrive.json' },
-            @{ key = 'miniforge';  file = 'bucket/miniforge.json'  },
-            @{ key = 'lobehub';    file = 'bucket/lobehub.json'    },
-            @{ key = 'eudic';      file = 'bucket/eudic.json'      },
-            @{ key = 'dida365';    file = 'bucket/dida365.json'    },
-            @{ key = 'motrix-next'; file = 'bucket/motrix-next.json' },
-            @{ key = 'ndi-tools';  file = 'bucket/ndi-tools.json'  },
-            @{ key = 'pixpin';     file = 'bucket/pixpin.json'     }
-          )
+          # App key must match the manifest filename (without .json) for the
+          # row regex to work, so derive the list from bucket/*.json instead of
+          # hardcoding it here (prevents drift when a new manifest is added).
+          $apps = @(Get-ChildItem -LiteralPath 'bucket' -Filter '*.json' | Sort-Object Name | ForEach-Object {
+            @{ key = [IO.Path]::GetFileNameWithoutExtension($_.Name); file = "bucket/$($_.Name)" }
+          })
 
           foreach ($a in $apps) {
-            if (Test-Path $a.file) {
-              try {
-                $ver = (Get-Content $a.file -Raw | ConvertFrom-Json).version
-                if ($ver) { Update-VersionRow -app $a.key -version $ver }
-              } catch {
-                Write-Host "Skip $($a.key): failed to read version" -ForegroundColor Yellow
-              }
+            try {
+              $ver = (Get-Content $a.file -Raw | ConvertFrom-Json).version
+              if ($ver) { Update-VersionRow -app $a.key -version $ver }
+            } catch {
+              Write-Host "Skip $($a.key): failed to read version" -ForegroundColor Yellow
             }
           }
 
@@ -268,16 +262,11 @@ jobs:
           }
 
           $content = Get-Content -LiteralPath 'README.md' -Raw -Encoding UTF8
-          $apps = @(
-            @{ key = 'aliyundrive'; file = 'bucket/aliyundrive.json' },
-            @{ key = 'miniforge';  file = 'bucket/miniforge.json'  },
-            @{ key = 'lobehub';    file = 'bucket/lobehub.json'    },
-            @{ key = 'eudic';      file = 'bucket/eudic.json'      },
-            @{ key = 'dida365';    file = 'bucket/dida365.json'    },
-            @{ key = 'motrix-next'; file = 'bucket/motrix-next.json' },
-            @{ key = 'ndi-tools';  file = 'bucket/ndi-tools.json'  },
-            @{ key = 'pixpin';     file = 'bucket/pixpin.json'     }
-          )
+          # Derived from bucket/*.json so a newly added manifest is always
+          # checked; a hardcoded list here would silently skip new apps.
+          $apps = @(Get-ChildItem -LiteralPath 'bucket' -Filter '*.json' | Sort-Object Name | ForEach-Object {
+            @{ key = [IO.Path]::GetFileNameWithoutExtension($_.Name); file = "bucket/$($_.Name)" }
+          })
           $errors = @()
 
           foreach ($a in $apps) {
