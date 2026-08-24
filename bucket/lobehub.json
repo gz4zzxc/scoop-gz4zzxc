@@ -1,15 +1,16 @@
 {
     "version": "2.2.14",
-    "description": "开源的多模型 AI 聊天与增强工具 (Desktop Electron 版)",
+    "description": "开源的多模型 AI 聊天与增强工具 (Desktop Electron 版)（已弃用）",
     "homepage": "https://github.com/lobehub/lobehub",
     "license": {
         "identifier": "Apache-2.0",
         "url": "https://github.com/lobehub/lobe-chat/blob/main/LICENSE"
     },
     "notes": [
+        "⚠️ 已弃用：本 bucket 不再主动维护 lobehub，冻结在 2.2.14；如需新版请关注上游 https://github.com/lobehub/lobehub 或自行 fork 维护",
         "此包使用官方 Windows 安装程序 (electron-builder NSIS)，支持 /S 静默安装",
         "首次启动会创建用户数据目录于 %APPDATA% 或 %LOCALAPPDATA%",
-        "更新时如有进程占用，请先退出托盘后再执行 scoop update lobehub"
+        "更新时如有进程占用，请先退出托盘后再执行 scoop update lobehub（已冻结，不再有更新）"
     ],
     "architecture": {
         "64bit": {
@@ -32,20 +33,5 @@
             "LobeHub.exe",
             "LobeChat"
         ]
-    ],
-    "checkver": {
-        "url": "https://api.github.com/repos/lobehub/lobehub/releases/latest",
-        "jsonpath": "$.tag_name",
-        "regex": "v([\\d.]+)"
-    },
-    "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://github.com/lobehub/lobehub/releases/download/v$version/LobeHub-$version-setup.exe"
-            }
-        },
-        "hash": {
-            "mode": "download"
-        }
-    }
+    ]
 }
