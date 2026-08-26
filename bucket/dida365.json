@@ -11,11 +11,11 @@
     "architecture": {
         "64bit": {
             "url": "https://www.dida365.com/down/getApp/download?type=win64#/dl.exe",
-            "hash": "8bb41fac693d383f85b4b779739a7a0951d108dbd1cc9bae95b32e8ac937cf40"
+            "hash": "414862e8188c71fe0082fcfbc398bc01023c38eba283b2ae6fa67287a49417ee"
         },
         "32bit": {
             "url": "https://www.dida365.com/down/getApp/download?type=win#/dl.exe",
-            "hash": "95764e3f1630d086cd755eda6bfd7be2c97f240b1c291bd8202e04d32c08b84a"
+            "hash": "253af9e708e36b3add97cc4c8af49cc0c11a872771ace68f2f576f088959ceaf"
         }
     },
     "innosetup": true,
