@@ -26,7 +26,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | lobehub | LobeChat 桌面客户端 (已弃用) | 2.2.14 |
 | miniforge | Conda-forge 精简版（仅 conda） | 26.5.3-0 |
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
-| eudic | 欧路词典：英语词典软件 | 26.8.1.0 |
+| eudic | 欧路词典：英语词典软件 | 26.9.0.0 |
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.1.3.6 |
 | motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.7 |
 | ndi-tools | NDI 音视频网络工具集 | 6.3.2 |
@@ -202,6 +202,7 @@ scoop install gz4zzxc/dida365
 ## 📜 许可证
 
 本 Bucket 采用 [Unlicense](https://unlicense.org/) 许可证。
+
 
 
 

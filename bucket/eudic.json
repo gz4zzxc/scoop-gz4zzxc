@@ -1,5 +1,5 @@
 {
-    "version": "26.8.1.0",
+    "version": "26.9.0.0",
     "description": "权威英语词典软件，支持屏幕取词与真人发音",
     "homepage": "https://www.eudic.net/",
     "license": "Proprietary",
@@ -13,8 +13,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://www.eudic.net/download/eudic_win.zip?v=2026-08-13#/eudic_win.zip",
-            "hash": "dad9c14d59f3d2dd88bd828d51864d76c2e2e528add67f15a65eecec74d51fde"
+            "url": "https://www.eudic.net/download/eudic_win.zip?v=26.9.0#/eudic_win.zip",
+            "hash": "76089ab96fbe8fecd33be3135f0ea0f3ef845d137480cdedd20c65b8fae85152"
         }
     },
     "installer": {
