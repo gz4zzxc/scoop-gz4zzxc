@@ -30,7 +30,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.2.0.1 |
 | motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.9 |
 | ndi-tools | NDI 音视频网络工具集 | 6.3.2 |
-| pixpin | 强大且免费的截图贴图工具（截图/贴图/OCR/标注） | 3.4.3.2 |
+| pixpin | 强大且免费的截图贴图工具（截图/贴图/OCR/标注） | 3.5.5.1 |
 
 > ⚠️ **lobehub 已弃用**：本仓库自 2026-08-24 起冻结在 `2.2.14`，不再自动更新。如需新版请关注上游 https://github.com/lobehub/lobehub 或自行 fork 维护。
 
@@ -202,6 +202,7 @@ scoop install gz4zzxc/dida365
 ## 📜 许可证
 
 本 Bucket 采用 [Unlicense](https://unlicense.org/) 许可证。
+
 
 
 
