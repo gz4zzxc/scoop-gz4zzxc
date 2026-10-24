@@ -24,7 +24,7 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | App | Description | Version |
 | --- | --- | --- |
 | lobehub | LobeChat 桌面客户端 (已弃用) | 2.2.14 |
-| miniforge | Conda-forge 精简版（仅 conda） | 26.7.2-1 |
+| miniforge | Conda-forge 精简版（仅 conda） | 26.9.4-0 |
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
 | eudic | 欧路词典：英语词典软件 | 26.9.1.0 |
 | dida365 | 滴答清单：待办/日历/番茄钟 | 8.2.4.0 |
@@ -202,6 +202,7 @@ scoop install gz4zzxc/dida365
 ## 📜 许可证
 
 本 Bucket 采用 [Unlicense](https://unlicense.org/) 许可证。
+
 
 
 
