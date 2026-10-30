@@ -1,5 +1,5 @@
 {
-    "version": "3.5.5.1",
+    "version": "3.6.6.0",
     "description": "强大且免费的截图贴图工具（支持截图、长截图、贴图、OCR 文字识别、标注）",
     "homepage": "https://pixpin.cn/",
     "license": "Freeware",
@@ -8,8 +8,8 @@
         "用户配置（Config）、历史记录（History）等已通过 persist 持久化，更新版本不会丢失",
         "更新时如提示文件占用，请先退出 PixPin 托盘与主程序后再执行 scoop update pixpin"
     ],
-    "url": "https://download.pixpinapp.com/PixPin_win_3.5.5.1.zip",
-    "hash": "1c6d81e7cc9791862553cceab5123e84d700b59efa2943aa17503fc81088106a",
+    "url": "https://download.pixpinapp.com/PixPin_win_3.6.6.0.zip",
+    "hash": "cc49fbdd8e8d2cd98aeba5e749f2f9828517ecd06d201ca5ce1d4e2efd9ecc8e",
     "extract_dir": "PixPin",
     "bin": [
         [
