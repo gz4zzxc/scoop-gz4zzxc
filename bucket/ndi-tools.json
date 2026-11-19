@@ -1,5 +1,5 @@
 {
-    "version": "6.3.2",
+    "version": "6.4",
     "description": "NDI 音视频网络工具集，包含发现、监看、路由、采集、Webcam Input 与 Bridge",
     "homepage": "https://ndi.video/tools/",
     "license": {
@@ -21,7 +21,7 @@
     "architecture": {
         "64bit": {
             "url": "https://downloads.ndi.tv/Tools/NDI%206%20Tools.exe",
-            "hash": "605cb6128999778b38126ffef167c76d3d8648d39a582ffc71529dd26f64bf32"
+            "hash": "477973b489e84328ac026e7e0430ae3b89e18b871167ea08b02287507461579d"
         }
     },
     "installer": {

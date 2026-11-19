@@ -1,5 +1,5 @@
 {
-    "version": "8.2.5.0",
+    "version": "8.2.6.0",
     "description": "滴答清单 (TickTick) —— 待办/日历/番茄融合的效率工具 (便携解包)",
     "homepage": "https://www.dida365.com/",
     "license": "Proprietary",
@@ -11,11 +11,11 @@
     "architecture": {
         "64bit": {
             "url": "https://www.dida365.com/down/getApp/download?type=win64#/dl.exe",
-            "hash": "5382e872503c3a2d8faab309f7bda76bacc178ef9a891f0546d9db666938cf5b"
+            "hash": "0fff473d830d40db0df2c86a8d012ea4a3fe81b06ff95631a9b1476821a9ce6e"
         },
         "32bit": {
             "url": "https://www.dida365.com/down/getApp/download?type=win#/dl.exe",
-            "hash": "3990dcce66c896e5c422a83ca2d7cdd538e218a6bd05efbde911a4a9407fa6dc"
+            "hash": "047895b9df6bf0883f36a6f0bc24e695734cfe4f4bf4d3b7be34f44d3a4c825c"
         }
     },
     "innosetup": true,

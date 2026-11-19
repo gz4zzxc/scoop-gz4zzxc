@@ -27,9 +27,9 @@ scoop bucket add gz4zzxc https://github.com/gz4zzxc/scoop-gz4zzxc
 | miniforge | Conda-forge 精简版（仅 conda） | 26.9.4-2 |
 | aliyundrive | 阿里云盘官方客户端 | 6.9.1 |
 | eudic | 欧路词典：英语词典软件 | 26.11.1.0 |
-| dida365 | 滴答清单：待办/日历/番茄钟 | 8.2.5.0 |
+| dida365 | 滴答清单：待办/日历/番茄钟 | 8.2.6.0 |
 | motrix-next | 基于 Tauri 重写的 Motrix 下载管理器 | 3.9.9 |
-| ndi-tools | NDI 音视频网络工具集 | 6.3.2 |
+| ndi-tools | NDI 音视频网络工具集 | 6.4 |
 | pixpin | 强大且免费的截图贴图工具（截图/贴图/OCR/标注） | 3.6.6.0 |
 
 > ⚠️ **lobehub 已弃用**：本仓库自 2026-08-24 起冻结在 `2.2.14`，不再自动更新。如需新版请关注上游 https://github.com/lobehub/lobehub 或自行 fork 维护。
@@ -202,6 +202,7 @@ scoop install gz4zzxc/dida365
 ## 📜 许可证
 
 本 Bucket 采用 [Unlicense](https://unlicense.org/) 许可证。
+
 
 
 
